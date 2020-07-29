@@ -1,0 +1,5 @@
+name: 'PR Semver Bump'
+description: 'Bump and tag a new version using pull request metadata'
+runs:
+  using: 'node12'
+  main: 'dist/index.js'
