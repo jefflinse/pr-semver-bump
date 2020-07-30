@@ -7,15 +7,15 @@ inputs:
   major-label:
     description: The name of the PR label that specifies a major release
     required: false
-    default: 'major-release'
+    default: 'major release'
   minor-label:
     description: The name of the PR label that specifies a minor release
     required: false
-    default: 'minor-release'
+    default: 'minor release'
   patch-label:
     description: The name of the PR label that specifies a patch release
     required: false
-    default: 'patch-release'
+    default: 'patch release'
   require-release-notes:
     description: Whether or not release notes are required
     required: false
