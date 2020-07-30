@@ -3,7 +3,6 @@ const github = require('@actions/github')
 const semver = require('semver');
 const { getConfig } = require('./config');
 const { extractPRNumber, fetchPR, getReleaseType, getReleaseNotes } = require("./pr");
-const { octokit } = require("./octokit");
 
 async function run() {
     try {
@@ -27,7 +26,7 @@ async function validateActivePR(config) {
 
     let pr
     try {
-        pr = await fetchPR(github.context.payload.pull_request.number)
+        pr = await fetchPR(github.context.payload.pull_request.number, config)
     } catch (e) {
         core.setFailed(e.message)
         return
@@ -35,14 +34,14 @@ async function validateActivePR(config) {
 
     let releaseType, releaseNotes
     try {
-        releaseType = getReleaseType(pr, config.releaseLabels)
-        releaseNotes = getReleaseNotes(pr, config.releaseNotesRegex, config.requireReleaseNotes)
+        releaseType = getReleaseType(pr, config)
+        releaseNotes = getReleaseNotes(pr, config)
     } catch (e) {
         core.setFailed(`PR validation failed: ${e.message}`)
         return
     }
 
-    const currentVersion = await getCurrentVersion()
+    const currentVersion = await getCurrentVersion(config)
     const newVersion = semver.inc(`${currentVersion}`, releaseType)
 
     core.info(`current version: ${config.v}${currentVersion}`)
@@ -69,10 +68,10 @@ async function bumpAndTagNewVersion(config) {
         return
     }
 
-    const pr = await fetchPR(num)
-    const releaseType = getReleaseType(pr, config.releaseLabels)
-    const releaseNotes = getReleaseNotes(pr, config.releaseNotesRegex, config.requireReleaseNotes)
-    const currentVersion = await getCurrentVersion()
+    const pr = await fetchPR(num, config)
+    const releaseType = getReleaseType(pr, config)
+    const releaseNotes = getReleaseNotes(pr, config)
+    const currentVersion = await getCurrentVersion(config)
 
     const newVersion = semver.inc(`${currentVersion}`, releaseType)
     const newTag = await createRelease(`${config.v}${newVersion}`, releaseNotes)
@@ -93,8 +92,8 @@ function isMergeCommit() {
 }
 
 // Returns the most recent tagged version in git.
-async function getCurrentVersion() {
-    const data = await octokit().git.listMatchingRefs({
+async function getCurrentVersion(config) {
+    const data = await config.octokit.git.listMatchingRefs({
         ...github.context.repo,
         namespace: 'tags/'
     })
@@ -108,17 +107,17 @@ async function getCurrentVersion() {
 }
 
 // Tags the specified version and annotates it with the provided release notes.
-async function createRelease(tag, releaseNotes) {
-    core.info(`Creating release tag ${tag} with the following release notes:\n${releaseNotes}\n`)
-    const tagCreateResponse = await octokit().git.createTag({
+async function createRelease(tag, config) {
+    core.info(`Creating release tag ${tag} with the following release notes:\n${config.releaseNotes}\n`)
+    const tagCreateResponse = await config.octokit.git.createTag({
         ...github.context.repo,
         tag: tag,
-        message: releaseNotes,
+        message: config.releaseNotes,
         object: process.env.GITHUB_SHA,
         type: 'commit',
     })
 
-    await octokit().git.createRef({
+    await config.octokit.git.createRef({
         ...github.context.repo,
         ref: `refs/tags/${tag}`,
         sha: tagCreateResponse.data.sha,

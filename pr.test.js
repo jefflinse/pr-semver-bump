@@ -17,13 +17,15 @@ test('can get release type', () => {
             { name: 'another one' },
         ]
     }
-    const releaseLabels = {
-        'mock-major-label': 'major',
-        'mock-minor-label': 'minor',
-        'mock-patch-label': 'patch',
+    const config = {
+        releaseLabels: {
+            'mock-major-label': 'major',
+            'mock-minor-label': 'minor',
+            'mock-patch-label': 'patch',
+        },
     }
     
-    const type = getReleaseType(mockPR, releaseLabels)
+    const type = getReleaseType(mockPR, config)
     expect(type).toEqual('major')
 })
 
@@ -35,14 +37,16 @@ test('throws if no valid release label is present', () => {
             { name: 'another one' },
         ]
     }
-    const releaseLabels = {
-        'mock-major-label': 'major',
-        'mock-minor-label': 'minor',
-        'mock-patch-label': 'patch',
+    const config = {
+        releaseLabels: {
+            'mock-major-label': 'major',
+            'mock-minor-label': 'minor',
+            'mock-patch-label': 'patch',
+        },
     }
     
     expect(() => {
-        getReleaseType(mockPR, releaseLabels)
+        getReleaseType(mockPR, config)
     }).toThrow('no release label specified on PR')
 })
 
@@ -54,14 +58,16 @@ test('throws if multiple valud release labels are present', () => {
             { name: 'mock-patch-label' },
         ]
     }
-    const releaseLabels = {
-        'mock-major-label': 'major',
-        'mock-minor-label': 'minor',
-        'mock-patch-label': 'patch',
+    const config = {
+        releaseLabels: {
+            'mock-major-label': 'major',
+            'mock-minor-label': 'minor',
+            'mock-patch-label': 'patch',
+        },
     }
     
     expect(() => {
-        getReleaseType(mockPR, releaseLabels)
+        getReleaseType(mockPR, config)
     }).toThrow('too many release labels specified on PR')
 })
 
