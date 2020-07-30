@@ -15,5 +15,5 @@ jobs:
           mode: validate
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           require-release-notes: true
-          release-notes-prefix: '### RELEASE'
+          release-notes-prefix: '### RELEASE NOTES'
           with-v: true
