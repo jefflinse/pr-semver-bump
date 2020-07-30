@@ -1,11 +1,6 @@
 const process = require('process');
 const { getConfig } = require('./config');
 
-// test('test runs', () => {
-//     const ip = path.join(__dirname, 'index.js');
-//     console.log(cp.execSync(`node ${ip}`, {env: process.env}).toString());
-// })
-
 test('establishes config from minimum required inputs', () => {
     process.env['INPUT_MODE'] = 'validate'
     const config = getConfig()
@@ -43,4 +38,9 @@ test('establishes config from complete set of inputs', () => {
         requireReleaseNotes: true,
         v: 'v',
     })
+})
+
+test('throws when a required input is missing', () => {
+    process.env['INPUT_MODE'] = ''
+    expect(getConfig).toThrow('Input required and not supplied: mode')
 })
