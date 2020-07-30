@@ -52,8 +52,6 @@ async function validateActivePR(config) {
     core.setOutput('old-version', `${config.v}${currentVersion}`)
     core.setOutput('version', `${config.v}${newVersion}`)
     core.setOutput('release-notes', releaseNotes)
-
-    return
 }
 
 // Increments the version according to the release type and tags a new version with release notes.
@@ -82,8 +80,6 @@ async function bumpAndTagNewVersion(config) {
     core.setOutput('old-version', `${config.v}${currentVersion}`)
     core.setOutput('version', newTag)
     core.setOutput('release-notes', releaseNotes)
-
-    return
 }
 
 // Returns true if the current context looks like an active PR.
