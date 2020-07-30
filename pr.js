@@ -42,7 +42,7 @@ function getReleaseType(pr, releaseLabels) {
 
 // Extracts the release notes from the PR body.
 function getReleaseNotes(pr, regex, required) {
-    var notes = ''
+    let notes = ''
     if (pr.body !== null && pr.body !== '') {
         const matches = pr.body.match(regex)
         if (matches !== null && matches.length > 1) {

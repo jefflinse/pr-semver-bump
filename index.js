@@ -7,7 +7,7 @@ const { octokit } = require("./octokit");
 
 async function run() {
     try {
-        var config = getConfig()
+        let config = getConfig()
         if (config.mode === 'validate') {
             await validateActivePR(config)
         } else if (config.mode === 'bump') {
@@ -25,7 +25,7 @@ async function validateActivePR(config) {
         return
     }
 
-    var pr
+    let pr
     try {
         pr = await fetchPR(github.context.payload.pull_request.number)
     } catch (e) {
@@ -33,7 +33,7 @@ async function validateActivePR(config) {
         return
     }
 
-    var releaseType, releaseNotes
+    let releaseType, releaseNotes
     try {
         releaseType = getReleaseType(pr, config.releaseLabels)
         releaseNotes = getReleaseNotes(pr, config.releaseNotesRegex, config.requireReleaseNotes)
