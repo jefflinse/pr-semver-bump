@@ -492,21 +492,21 @@ module.exports = require("os");
 /***/ }),
 
 /***/ 104:
-/***/ (function(__unusedmodule, __unusedexports, __webpack_require__) {
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 const core = __webpack_require__(470);
 const github = __webpack_require__(469)
 const semver = __webpack_require__(876);
 const { getConfig } = __webpack_require__(68);
-
-var config = getConfig()
+const { extractPRNumber, fetchPR, getReleaseType, getReleaseNotes } = __webpack_require__(247);
 
 async function run() {
     try {
+        var config = getConfig()
         if (config.mode === 'validate') {
-            await validateActivePR()
+            await validateActivePR(config)
         } else if (config.mode === 'bump') {
-            await bumpAndTagNewVersion()
+            await bumpAndTagNewVersion(config)
         }
     } catch (e) {
         core.setFailed(`unexpected error: ${e.message}`)
@@ -514,7 +514,7 @@ async function run() {
 }
 
 // Ensures that the currently active PR contains the required release metadata.
-async function validateActivePR() {
+async function validateActivePR(config) {
     if (!isActivePR()) {
         core.warning(`in 'validate' mode, but this doesn't look like an active PR event (is your workflow misconfigured?)`)
         return
@@ -530,8 +530,8 @@ async function validateActivePR() {
 
     var releaseType, releaseNotes
     try {
-        releaseType = getReleaseType(pr)
-        releaseNotes = getReleaseNotes(pr)
+        releaseType = getReleaseType(pr, config.releaseLabels)
+        releaseNotes = getReleaseNotes(pr, config.releaseNotesRegex, config.requireReleaseNotes)
     } catch (e) {
         core.setFailed(`PR validation failed: ${e.message}`)
         return
@@ -552,7 +552,7 @@ async function validateActivePR() {
 }
 
 // Increments the version according to the release type and tags a new version with release notes.
-async function bumpAndTagNewVersion() {
+async function bumpAndTagNewVersion(config) {
     if (!isMergeCommit()) {
         core.warning(`in 'bump' mode, but this doesn't look like a PR merge commit event (is your workflow misconfigured?)`)
         return
@@ -567,12 +567,12 @@ async function bumpAndTagNewVersion() {
     }
 
     const pr = await fetchPR(num)
-    const releaseType = getReleaseType(pr)
-    const releaseNotes = getReleaseNotes(pr)
+    const releaseType = getReleaseType(pr, config.releaseLabels)
+    const releaseNotes = getReleaseNotes(pr, config.releaseNotesRegex, config.requireReleaseNotes)
     const currentVersion = await getCurrentVersion()
 
     const newVersion = semver.inc(currentVersion, releaseType)
-    const newTag = await createRelease(newVersion, releaseNotes)
+    const newTag = await createRelease(`${config.v}${newVersion}`, releaseNotes)
 
     core.setOutput('oldversion', `${config.v}${currentVersion}`)
     core.setOutput('version', newTag)
@@ -591,62 +591,6 @@ function isMergeCommit() {
     return github.context.eventName === 'push' && github.context.payload.head_commit !== undefined
 }
 
-// Returns the PR number from a commit message, or null if one can't be found.
-function extractPRNumber(commitMsg) {
-    const re = /Merge pull request #(\d+) from/
-    const matches = commitMsg.match(re)
-    if (matches !== null && matches.length > 1) {
-        return matches[1].trim()
-    }
-
-    return null
-}
-
-// Fetch the details of a pull request.
-async function fetchPR(num) {
-    try {
-        const data = await octokit().pulls.get({
-            ...github.context.repo,
-            pull_number: num
-        })
-
-        return data.data
-    }
-    catch (fetchError) {
-        throw new Error(`failed to fetch data for PR #${num}: ${fetchError.message}`)
-    }
-}
-
-// Retuns the release type (major, minor, or patch) based on the tags in the PR.
-function getReleaseType(pr) {
-    const labelNames = pr.labels.map(label => label.name)
-    const releaseLabelsPresent = labelNames.filter(name => Object.keys(config.releaseLabels).includes(name))
-    if (releaseLabelsPresent.length === 0) {
-        throw new Error('no release label specified on PR')
-    } else if (releaseLabelsPresent.length > 1) {
-        throw new Error(`too many release labels specified on PR: ${releaseLabelsPresent}`)
-    }
-
-    return config.releaseLabels[releaseLabelsPresent[0]]
-}
-
-// Extracts the release notes from the PR body.
-function getReleaseNotes(pr) {
-    var notes = ''
-    if (pr.body !== null && pr.body !== '') {
-        const matches = pr.body.match(config.releaseNotesRegex)
-        if (matches !== null && matches.length > 1) {
-            notes = matches[1].trim()
-        }
-    }
-
-    if (notes === ''  && config.requireReleaseNotes) {
-        throw new Error('missing release notes')
-    }
-
-    return notes
-}
-
 // Returns the most recent tagged version in git.
 async function getCurrentVersion() {
     const data = await octokit().git.listMatchingRefs({
@@ -663,12 +607,11 @@ async function getCurrentVersion() {
 }
 
 // Tags the specified version and annotates it with the provided release notes.
-async function createRelease(version, releaseNotes) {
-    const tag = `${config.v}${version}`
+async function createRelease(tag, releaseNotes) {
     core.info(`Creating release tag ${tag} with the following release notes:\n${releaseNotes}\n`)
     const tagCreateResponse = await octokit().git.createTag({
         ...github.context.repo,
-        tag: version,
+        tag: tag,
         message: releaseNotes,
         object: process.env.GITHUB_SHA,
         type: 'commit',
@@ -676,7 +619,7 @@ async function createRelease(version, releaseNotes) {
 
     await octokit().git.createRef({
         ...github.context.repo,
-        ref: `refs/tags/${version}`,
+        ref: `refs/tags/${tag}`,
         sha: tagCreateResponse.data.sha,
     })
 
@@ -689,6 +632,8 @@ function octokit() {
     core.setSecret(token)
     return github.getOctokit(token)
 }
+
+exports.octokit = octokit;
 
 run();
 
@@ -1759,6 +1704,76 @@ const toComparators = (range, options) =>
     .map(comp => comp.map(c => c.value).join(' ').trim().split(' '))
 
 module.exports = toComparators
+
+
+/***/ }),
+
+/***/ 247:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+const github = __webpack_require__(469);
+const { octokit } = __webpack_require__(104);
+
+// Returns the PR number from a commit message, or null if one can't be found.
+function extractPRNumber(commitMsg) {
+    const re = /Merge pull request #(\d+) from/
+    const matches = commitMsg.match(re)
+    if (matches !== null && matches.length > 1) {
+        return matches[1].trim()
+    }
+
+    return null
+}
+
+// Fetches the details of a pull request.
+async function fetchPR(num) {
+    try {
+        const data = await octokit().pulls.get({
+            ...github.context.repo,
+            pull_number: num
+        });
+
+        return data.data;
+    }
+    catch (fetchError) {
+        throw new Error(`failed to fetch data for PR #${num}: ${fetchError.message}`);
+    }
+}
+
+// Retuns the release type (major, minor, or patch) based on the tags in the PR.
+function getReleaseType(pr, releaseLabels) {
+    const labelNames = pr.labels.map(label => label.name)
+    const releaseLabelsPresent = labelNames.filter(name => Object.keys(releaseLabels).includes(name))
+    if (releaseLabelsPresent.length === 0) {
+        throw new Error('no release label specified on PR')
+    } else if (releaseLabelsPresent.length > 1) {
+        throw new Error(`too many release labels specified on PR: ${releaseLabelsPresent}`)
+    }
+
+    return releaseLabels[releaseLabelsPresent[0]]
+}
+
+// Extracts the release notes from the PR body.
+function getReleaseNotes(pr, regex, required) {
+    var notes = ''
+    if (pr.body !== null && pr.body !== '') {
+        const matches = pr.body.match(regex)
+        if (matches !== null && matches.length > 1) {
+            notes = matches[1].trim()
+        }
+    }
+
+    if (notes === ''  && required) {
+        throw new Error('missing release notes')
+    }
+
+    return notes
+}
+
+exports.extractPRNumber = extractPRNumber
+exports.fetchPR = fetchPR
+exports.getReleaseType = getReleaseType
+exports.getReleaseNotes = getReleaseNotes
 
 
 /***/ }),
