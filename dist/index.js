@@ -503,7 +503,7 @@ const { octokit } = __webpack_require__(636);
 
 async function run() {
     try {
-        var config = getConfig()
+        let config = getConfig()
         if (config.mode === 'validate') {
             await validateActivePR(config)
         } else if (config.mode === 'bump') {
@@ -521,7 +521,7 @@ async function validateActivePR(config) {
         return
     }
 
-    var pr
+    let pr
     try {
         pr = await fetchPR(github.context.payload.pull_request.number)
     } catch (e) {
@@ -529,7 +529,7 @@ async function validateActivePR(config) {
         return
     }
 
-    var releaseType, releaseNotes
+    let releaseType, releaseNotes
     try {
         releaseType = getReleaseType(pr, config.releaseLabels)
         releaseNotes = getReleaseNotes(pr, config.releaseNotesRegex, config.requireReleaseNotes)
@@ -539,7 +539,7 @@ async function validateActivePR(config) {
     }
 
     const currentVersion = await getCurrentVersion()
-    const newVersion = semver.inc(currentVersion, releaseType)
+    const newVersion = semver.inc(`${currentVersion}`, releaseType)
 
     core.info(`current version: ${config.v}${currentVersion}`)
     core.info(`next version: ${config.v}${newVersion}`)
@@ -572,7 +572,7 @@ async function bumpAndTagNewVersion(config) {
     const releaseNotes = getReleaseNotes(pr, config.releaseNotesRegex, config.requireReleaseNotes)
     const currentVersion = await getCurrentVersion()
 
-    const newVersion = semver.inc(currentVersion, releaseType)
+    const newVersion = semver.inc(`${currentVersion}`, releaseType)
     const newTag = await createRelease(`${config.v}${newVersion}`, releaseNotes)
 
     core.setOutput('old-version', `${config.v}${currentVersion}`)
@@ -1747,7 +1747,7 @@ function getReleaseType(pr, releaseLabels) {
 
 // Extracts the release notes from the PR body.
 function getReleaseNotes(pr, regex, required) {
-    var notes = ''
+    let notes = ''
     if (pr.body !== null && pr.body !== '') {
         const matches = pr.body.match(regex)
         if (matches !== null && matches.length > 1) {

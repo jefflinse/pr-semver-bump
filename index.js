@@ -43,7 +43,7 @@ async function validateActivePR(config) {
     }
 
     const currentVersion = await getCurrentVersion()
-    const newVersion = semver.inc(currentVersion, releaseType)
+    const newVersion = semver.inc(`${currentVersion}`, releaseType)
 
     core.info(`current version: ${config.v}${currentVersion}`)
     core.info(`next version: ${config.v}${newVersion}`)
@@ -76,7 +76,7 @@ async function bumpAndTagNewVersion(config) {
     const releaseNotes = getReleaseNotes(pr, config.releaseNotesRegex, config.requireReleaseNotes)
     const currentVersion = await getCurrentVersion()
 
-    const newVersion = semver.inc(currentVersion, releaseType)
+    const newVersion = semver.inc(`${currentVersion}`, releaseType)
     const newTag = await createRelease(`${config.v}${newVersion}`, releaseNotes)
 
     core.setOutput('old-version', `${config.v}${currentVersion}`)
