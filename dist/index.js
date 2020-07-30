@@ -492,13 +492,14 @@ module.exports = require("os");
 /***/ }),
 
 /***/ 104:
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
+/***/ (function(__unusedmodule, __unusedexports, __webpack_require__) {
 
 const core = __webpack_require__(470);
 const github = __webpack_require__(469)
 const semver = __webpack_require__(876);
 const { getConfig } = __webpack_require__(68);
 const { extractPRNumber, fetchPR, getReleaseType, getReleaseNotes } = __webpack_require__(247);
+const { octokit } = __webpack_require__(636);
 
 async function run() {
     try {
@@ -524,7 +525,7 @@ async function validateActivePR(config) {
     try {
         pr = await fetchPR(github.context.payload.pull_request.number)
     } catch (e) {
-        core.setFailed(`failed to fetch PR data: ${e.message}`)
+        core.setFailed(e.message)
         return
     }
 
@@ -625,15 +626,6 @@ async function createRelease(tag, releaseNotes) {
 
     return tag
 }
-
-// Return an instance of octokit using the user-supplied access token.
-function octokit() {
-    const token = core.getInput('repo-token', {required: true})
-    core.setSecret(token)
-    return github.getOctokit(token)
-}
-
-exports.octokit = octokit;
 
 run();
 
@@ -1712,7 +1704,7 @@ module.exports = toComparators
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 const github = __webpack_require__(469);
-const { octokit } = __webpack_require__(104);
+const { octokit } = __webpack_require__(636);
 
 // Returns the PR number from a commit message, or null if one can't be found.
 function extractPRNumber(commitMsg) {
@@ -5847,6 +5839,24 @@ module.exports = rcompare
 /***/ (function(module) {
 
 module.exports = require("net");
+
+/***/ }),
+
+/***/ 636:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+const core = __webpack_require__(470);
+const github = __webpack_require__(469);
+
+// Return an instance of octokit using the user-supplied access token.
+function octokit() {
+    const token = core.getInput('repo-token', { required: true });
+    core.setSecret(token);
+    return github.getOctokit(token);
+}
+
+exports.octokit = octokit
+
 
 /***/ }),
 

@@ -1,5 +1,5 @@
 const github = require('@actions/github');
-const { octokit } = require("./index");
+const { octokit } = require('./octokit');
 
 // Returns the PR number from a commit message, or null if one can't be found.
 function extractPRNumber(commitMsg) {

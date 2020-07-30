@@ -3,6 +3,7 @@ const github = require('@actions/github')
 const semver = require('semver');
 const { getConfig } = require('./config');
 const { extractPRNumber, fetchPR, getReleaseType, getReleaseNotes } = require("./pr");
+const { octokit } = require("./octokit");
 
 async function run() {
     try {
@@ -28,7 +29,7 @@ async function validateActivePR(config) {
     try {
         pr = await fetchPR(github.context.payload.pull_request.number)
     } catch (e) {
-        core.setFailed(`failed to fetch PR data: ${e.message}`)
+        core.setFailed(e.message)
         return
     }
 
@@ -129,14 +130,5 @@ async function createRelease(tag, releaseNotes) {
 
     return tag
 }
-
-// Return an instance of octokit using the user-supplied access token.
-function octokit() {
-    const token = core.getInput('repo-token', {required: true})
-    core.setSecret(token)
-    return github.getOctokit(token)
-}
-
-exports.octokit = octokit;
 
 run();
