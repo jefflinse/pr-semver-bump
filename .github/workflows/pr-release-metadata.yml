@@ -1,0 +1,19 @@
+name: PR
+on:
+  pull_request:
+    types: [labeled, unlabeled, opened, edited, reopened, synchronize, ready_for_review]
+
+jobs:
+  validate:
+    name: Validate Release Label and Notes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: ./
+        name: Validate PR metadata
+        with:
+          mode: validate
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          require-release-notes: true
+          release-notes-prefix: '### RELEASE NOTES'
+          with-v: true

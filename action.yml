@@ -1,5 +1,47 @@
 name: 'PR Semver Bump'
 description: 'Bump and tag a new version using pull request metadata'
+inputs:
+  mode:
+    description: The mode in which to run this action ('validate' or 'bump')
+    required: true
+  major-label:
+    description: The name of the PR label that specifies a major release
+    required: false
+    default: 'major release'
+  minor-label:
+    description: The name of the PR label that specifies a minor release
+    required: false
+    default: 'minor release'
+  patch-label:
+    description: The name of the PR label that specifies a patch release
+    required: false
+    default: 'patch release'
+  require-release-notes:
+    description: Whether or not release notes are required
+    required: false
+    default: 'false'
+  release-notes-prefix:
+    description: Text that designates the start of the release notes
+    required: false
+    default: ''
+  release-notes-suffix:
+    description: Text that designates the end of the release notes
+    required: false
+    default: ''
+  repo-token:
+    description: The repository's GITHUB_TOKEN, used to obtain PR data
+    required: true
+  with-v:
+    description: Set to 'true' to prefix versions with 'v'
+    required: false
+    default: 'false'
+outputs:
+  old-version:
+    description: The version tag prior to bumping
+  version:
+    description: The version tag after bumping
+  release-notes:
+    description: The version's release notes
 runs:
   using: 'node12'
   main: 'dist/index.js'
