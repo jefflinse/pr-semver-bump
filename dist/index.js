@@ -454,13 +454,17 @@ module.exports = SemVer
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 const core = __webpack_require__(470);
+const github = __webpack_require__(469);
 
 // Gets all the required inputs and validates them before proceeding.
 function getConfig() {
     const mode = core.getInput('mode', { required: true }).toLowerCase();
     if (mode !== 'validate' && mode !== 'bump') {
-        core.setFailed("mode must be either 'validate' or 'bump'");
+        throw new Error("mode must be either 'validate' or 'bump'");
     }
+
+    const token = core.getInput('repo-token', { required: true });
+    core.setSecret(token);
 
     const releaseNotesPrefix = core.getInput('release-notes-prefix');
     const releaseNotesSuffix = core.getInput('release-notes-suffix');
@@ -472,6 +476,7 @@ function getConfig() {
 
     return {
         mode: mode,
+        octokit: github.getOctokit(token),
         releaseLabels: releaseLabels,
         releaseNotesRegex: new RegExp(`${releaseNotesPrefix}([\\s\\S]*)${releaseNotesSuffix}`),
         requireReleaseNotes: core.getInput('require-release-notes').toLowerCase() === 'true',
@@ -499,7 +504,6 @@ const github = __webpack_require__(469)
 const semver = __webpack_require__(876);
 const { getConfig } = __webpack_require__(68);
 const { extractPRNumber, fetchPR, getReleaseType, getReleaseNotes } = __webpack_require__(247);
-const { octokit } = __webpack_require__(636);
 
 async function run() {
     try {
@@ -523,7 +527,7 @@ async function validateActivePR(config) {
 
     let pr
     try {
-        pr = await fetchPR(github.context.payload.pull_request.number)
+        pr = await fetchPR(github.context.payload.pull_request.number, config)
     } catch (e) {
         core.setFailed(e.message)
         return
@@ -531,14 +535,14 @@ async function validateActivePR(config) {
 
     let releaseType, releaseNotes
     try {
-        releaseType = getReleaseType(pr, config.releaseLabels)
-        releaseNotes = getReleaseNotes(pr, config.releaseNotesRegex, config.requireReleaseNotes)
+        releaseType = getReleaseType(pr, config)
+        releaseNotes = getReleaseNotes(pr, config)
     } catch (e) {
         core.setFailed(`PR validation failed: ${e.message}`)
         return
     }
 
-    const currentVersion = await getCurrentVersion()
+    const currentVersion = await getCurrentVersion(config)
     const newVersion = semver.inc(`${currentVersion}`, releaseType)
 
     core.info(`current version: ${config.v}${currentVersion}`)
@@ -565,10 +569,10 @@ async function bumpAndTagNewVersion(config) {
         return
     }
 
-    const pr = await fetchPR(num)
-    const releaseType = getReleaseType(pr, config.releaseLabels)
-    const releaseNotes = getReleaseNotes(pr, config.releaseNotesRegex, config.requireReleaseNotes)
-    const currentVersion = await getCurrentVersion()
+    const pr = await fetchPR(num, config)
+    const releaseType = getReleaseType(pr, config)
+    const releaseNotes = getReleaseNotes(pr, config)
+    const currentVersion = await getCurrentVersion(config)
 
     const newVersion = semver.inc(`${currentVersion}`, releaseType)
     const newTag = await createRelease(`${config.v}${newVersion}`, releaseNotes)
@@ -589,8 +593,8 @@ function isMergeCommit() {
 }
 
 // Returns the most recent tagged version in git.
-async function getCurrentVersion() {
-    const data = await octokit().git.listMatchingRefs({
+async function getCurrentVersion(config) {
+    const data = await config.octokit.git.listMatchingRefs({
         ...github.context.repo,
         namespace: 'tags/'
     })
@@ -604,17 +608,17 @@ async function getCurrentVersion() {
 }
 
 // Tags the specified version and annotates it with the provided release notes.
-async function createRelease(tag, releaseNotes) {
-    core.info(`Creating release tag ${tag} with the following release notes:\n${releaseNotes}\n`)
-    const tagCreateResponse = await octokit().git.createTag({
+async function createRelease(tag, config) {
+    core.info(`Creating release tag ${tag} with the following release notes:\n${config.releaseNotes}\n`)
+    const tagCreateResponse = await config.octokit.git.createTag({
         ...github.context.repo,
         tag: tag,
-        message: releaseNotes,
+        message: config.releaseNotes,
         object: process.env.GITHUB_SHA,
         type: 'commit',
     })
 
-    await octokit().git.createRef({
+    await config.octokit.git.createRef({
         ...github.context.repo,
         ref: `refs/tags/${tag}`,
         sha: tagCreateResponse.data.sha,
@@ -1700,7 +1704,6 @@ module.exports = toComparators
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 const github = __webpack_require__(469);
-const { octokit } = __webpack_require__(636);
 
 // Returns the PR number from a commit message, or null if one can't be found.
 function extractPRNumber(commitMsg) {
@@ -1714,9 +1717,9 @@ function extractPRNumber(commitMsg) {
 }
 
 // Fetches the details of a pull request.
-async function fetchPR(num) {
+async function fetchPR(num, config) {
     try {
-        const data = await octokit().pulls.get({
+        const data = await config.octokit.pulls.get({
             ...github.context.repo,
             pull_number: num
         });
@@ -1729,16 +1732,16 @@ async function fetchPR(num) {
 }
 
 // Retuns the release type (major, minor, or patch) based on the tags in the PR.
-function getReleaseType(pr, releaseLabels) {
+function getReleaseType(pr, config) {
     const labelNames = pr.labels.map(label => label.name)
-    const releaseLabelsPresent = labelNames.filter(name => Object.keys(releaseLabels).includes(name))
+    const releaseLabelsPresent = labelNames.filter(name => Object.keys(config.releaseLabels).includes(name))
     if (releaseLabelsPresent.length === 0) {
         throw new Error('no release label specified on PR')
     } else if (releaseLabelsPresent.length > 1) {
         throw new Error(`too many release labels specified on PR: ${releaseLabelsPresent}`)
     }
 
-    return releaseLabels[releaseLabelsPresent[0]]
+    return config.releaseLabels[releaseLabelsPresent[0]]
 }
 
 // Extracts the release notes from the PR body.
@@ -5835,24 +5838,6 @@ module.exports = rcompare
 /***/ (function(module) {
 
 module.exports = require("net");
-
-/***/ }),
-
-/***/ 636:
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
-
-const core = __webpack_require__(470);
-const github = __webpack_require__(469);
-
-// Return an instance of octokit using the user-supplied access token.
-function octokit() {
-    const token = core.getInput('repo-token', { required: true });
-    core.setSecret(token);
-    return github.getOctokit(token);
-}
-
-exports.octokit = octokit
-
 
 /***/ }),
 
