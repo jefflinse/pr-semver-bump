@@ -499,11 +499,12 @@ module.exports = require("os");
 /***/ 104:
 /***/ (function(__unusedmodule, __unusedexports, __webpack_require__) {
 
-const core = __webpack_require__(470);
+const core = __webpack_require__(470)
 const github = __webpack_require__(469)
-const semver = __webpack_require__(876);
-const { getConfig } = __webpack_require__(68);
-const { extractPRNumber, fetchPR, getReleaseType, getReleaseNotes } = __webpack_require__(247);
+const semver = __webpack_require__(876)
+const { getConfig } = __webpack_require__(68)
+const { extractPRNumber, fetchPR, getReleaseType, getReleaseNotes } = __webpack_require__(247)
+const { createRelease, getCurrentVersion } = __webpack_require__(935)
 
 async function run() {
     try {
@@ -543,7 +544,7 @@ async function validateActivePR(config) {
     }
 
     const currentVersion = await getCurrentVersion(config)
-    const newVersion = semver.inc(`${currentVersion}`, releaseType)
+    const newVersion = semver.inc(currentVersion, releaseType)
 
     core.info(`current version: ${config.v}${currentVersion}`)
     core.info(`next version: ${config.v}${newVersion}`)
@@ -574,8 +575,9 @@ async function bumpAndTagNewVersion(config) {
     const releaseNotes = getReleaseNotes(pr, config)
     const currentVersion = await getCurrentVersion(config)
 
-    const newVersion = semver.inc(`${currentVersion}`, releaseType)
-    const newTag = await createRelease(`${config.v}${newVersion}`, releaseNotes)
+    const newVersion = semver.inc(currentVersion, releaseType)
+    const newTag = await createRelease(newVersion, releaseNotes)
+    core.info(`Created release tag ${newTag} with the following release notes:\n${config.releaseNotes}\n`)
 
     core.setOutput('old-version', `${config.v}${currentVersion}`)
     core.setOutput('version', newTag)
@@ -592,42 +594,7 @@ function isMergeCommit() {
     return github.context.eventName === 'push' && github.context.payload.head_commit !== undefined
 }
 
-// Returns the most recent tagged version in git.
-async function getCurrentVersion(config) {
-    const data = await config.octokit.git.listMatchingRefs({
-        ...github.context.repo,
-        namespace: 'tags/'
-    })
-    
-    const versions = data.data
-        .map(ref => semver.parse(ref.ref.replace(/^refs\/tags\//g, ''), { loose: true }))
-        .filter(version => version !== null)
-        .sort(semver.rcompare)
-    
-    return versions[0] || semver.parse('v0.0.0')
-}
-
-// Tags the specified version and annotates it with the provided release notes.
-async function createRelease(tag, config) {
-    core.info(`Creating release tag ${tag} with the following release notes:\n${config.releaseNotes}\n`)
-    const tagCreateResponse = await config.octokit.git.createTag({
-        ...github.context.repo,
-        tag: tag,
-        message: config.releaseNotes,
-        object: process.env.GITHUB_SHA,
-        type: 'commit',
-    })
-
-    await config.octokit.git.createRef({
-        ...github.context.repo,
-        ref: `refs/tags/${tag}`,
-        sha: tagCreateResponse.data.sha,
-    })
-
-    return tag
-}
-
-run();
+run()
 
 
 /***/ }),
@@ -7886,6 +7853,57 @@ const inc = (version, release, options, identifier) => {
   }
 }
 module.exports = inc
+
+
+/***/ }),
+
+/***/ 935:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+const github = __webpack_require__(469)
+const semver = __webpack_require__(876)
+
+// Tags the specified version and annotates it with the provided release notes.
+async function createRelease(version, config) {
+    const tag = `${config.v}${version}`
+    const tagCreateResponse = await config.octokit.git.createTag({
+        ...github.context.repo,
+        tag: tag,
+        message: config.releaseNotes,
+        object: process.env.GITHUB_SHA,
+        type: 'commit',
+    })
+
+    await config.octokit.git.createRef({
+        ...github.context.repo,
+        ref: `refs/tags/${tag}`,
+        sha: tagCreateResponse.data.sha,
+    })
+
+    return tag
+}
+
+// Returns the most recent tagged version in git.
+async function getCurrentVersion(config) {
+    const data = await config.octokit.git.listMatchingRefs({
+        ...github.context.repo,
+        namespace: 'tags/'
+    })
+
+    const versions = data.data
+        .map(ref => semver.parse(ref.ref.replace(/^refs\/tags\//g, ''), { loose: true }))
+        .filter(version => version !== null)
+        .sort(semver.rcompare)
+
+    if (versions[0] !== undefined) {
+        return `${versions[0]}`
+    }
+
+    return '0.0.0'
+}
+
+exports.createRelease = createRelease
+exports.getCurrentVersion = getCurrentVersion
 
 
 /***/ }),
