@@ -40,7 +40,7 @@ outputs:
     description: The version tag prior to bumping
   version:
     description: The version tag after bumping
-  release-notexs:
+  release-notes:
     description: The version's release notes
 runs:
   using: 'node12'
