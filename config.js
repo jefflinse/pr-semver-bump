@@ -11,9 +11,9 @@ function getConfig() {
     const releaseNotesSuffix = core.getInput('release-notes-suffix');
 
     var releaseLabels = {};
-    releaseLabels[core.getInput('major-label') || 'major-release'] = 'major';
-    releaseLabels[core.getInput('minor-label') || 'minor-release'] = 'minor';
-    releaseLabels[core.getInput('patch-label') || 'patch-release'] = 'patch';
+    releaseLabels[core.getInput('major-label') || 'major release'] = 'major';
+    releaseLabels[core.getInput('minor-label') || 'minor release'] = 'minor';
+    releaseLabels[core.getInput('patch-label') || 'patch release'] = 'patch';
 
     return {
         mode: mode,

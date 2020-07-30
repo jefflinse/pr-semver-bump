@@ -7,9 +7,9 @@ test('establishes config from minimum required inputs', () => {
     expect(config).toEqual({
         mode: 'validate',
         releaseLabels: {
-            'major-release': 'major',
-            'minor-release': 'minor',
-            'patch-release': 'patch',
+            'major release': 'major',
+            'minor release': 'minor',
+            'patch release': 'patch',
         },
         releaseNotesRegex: new RegExp(`([\\s\\S]*)`),
         requireReleaseNotes: false,
