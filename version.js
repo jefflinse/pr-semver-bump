@@ -2,12 +2,12 @@ const github = require('@actions/github')
 const semver = require('semver')
 
 // Tags the specified version and annotates it with the provided release notes.
-async function createRelease(version, config) {
+async function createRelease(version, releaseNotes, config) {
     const tag = `${config.v}${version}`
     const tagCreateResponse = await config.octokit.git.createTag({
         ...github.context.repo,
         tag: tag,
-        message: config.releaseNotes,
+        message: releaseNotes,
         object: process.env.GITHUB_SHA,
         type: 'commit',
     })
