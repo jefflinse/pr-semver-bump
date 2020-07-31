@@ -17,7 +17,6 @@ A GitHub Action to bump and tag a new [semantic version](https://semver.org) whe
   - [Constraining Release Notes](#constraining-release-notes)
 - [Outputs](#outputs)
 - [Full Example](#full-example)
-- [Contributing](#contributing)
 
 ## Motivation
 

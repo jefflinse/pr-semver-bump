@@ -1,5 +1,4 @@
 const github = require('@actions/github');
-const { octokit } = require('./octokit');
 
 // Returns the PR number from a commit message, or null if one can't be found.
 function extractPRNumber(commitMsg) {
@@ -13,9 +12,9 @@ function extractPRNumber(commitMsg) {
 }
 
 // Fetches the details of a pull request.
-async function fetchPR(num) {
+async function fetchPR(num, config) {
     try {
-        const data = await octokit().pulls.get({
+        const data = await config.octokit.pulls.get({
             ...github.context.repo,
             pull_number: num
         });
@@ -28,16 +27,16 @@ async function fetchPR(num) {
 }
 
 // Retuns the release type (major, minor, or patch) based on the tags in the PR.
-function getReleaseType(pr, releaseLabels) {
+function getReleaseType(pr, config) {
     const labelNames = pr.labels.map(label => label.name)
-    const releaseLabelsPresent = labelNames.filter(name => Object.keys(releaseLabels).includes(name))
+    const releaseLabelsPresent = labelNames.filter(name => Object.keys(config.releaseLabels).includes(name))
     if (releaseLabelsPresent.length === 0) {
         throw new Error('no release label specified on PR')
     } else if (releaseLabelsPresent.length > 1) {
         throw new Error(`too many release labels specified on PR: ${releaseLabelsPresent}`)
     }
 
-    return releaseLabels[releaseLabelsPresent[0]]
+    return config.releaseLabels[releaseLabelsPresent[0]]
 }
 
 // Extracts the release notes from the PR body.

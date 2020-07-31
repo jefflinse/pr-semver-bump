@@ -1,6 +1,6 @@
 {
   "name": "pr-semver-bump",
-  "version": "0.0.1",
+  "version": "0.1.1",
   "description": "An Action to bump and tag a new version based on pull request metadata",
   "main": "index.js",
   "scripts": {

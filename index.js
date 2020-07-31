@@ -1,9 +1,9 @@
-const core = require('@actions/core');
+const core = require('@actions/core')
 const github = require('@actions/github')
-const semver = require('semver');
-const { getConfig } = require('./config');
-const { extractPRNumber, fetchPR, getReleaseType, getReleaseNotes } = require("./pr");
-const { octokit } = require("./octokit");
+const semver = require('semver')
+const { getConfig } = require('./config')
+const { extractPRNumber, fetchPR, getReleaseType, getReleaseNotes } = require("./pr")
+const { createRelease, getCurrentVersion } = require("./version")
 
 async function run() {
     try {
@@ -27,7 +27,7 @@ async function validateActivePR(config) {
 
     let pr
     try {
-        pr = await fetchPR(github.context.payload.pull_request.number)
+        pr = await fetchPR(github.context.payload.pull_request.number, config)
     } catch (e) {
         core.setFailed(e.message)
         return
@@ -35,15 +35,15 @@ async function validateActivePR(config) {
 
     let releaseType, releaseNotes
     try {
-        releaseType = getReleaseType(pr, config.releaseLabels)
-        releaseNotes = getReleaseNotes(pr, config.releaseNotesRegex, config.requireReleaseNotes)
+        releaseType = getReleaseType(pr, config)
+        releaseNotes = getReleaseNotes(pr, config)
     } catch (e) {
         core.setFailed(`PR validation failed: ${e.message}`)
         return
     }
 
-    const currentVersion = await getCurrentVersion()
-    const newVersion = semver.inc(`${currentVersion}`, releaseType)
+    const currentVersion = await getCurrentVersion(config)
+    const newVersion = semver.inc(currentVersion, releaseType)
 
     core.info(`current version: ${config.v}${currentVersion}`)
     core.info(`next version: ${config.v}${newVersion}`)
@@ -69,13 +69,14 @@ async function bumpAndTagNewVersion(config) {
         return
     }
 
-    const pr = await fetchPR(num)
-    const releaseType = getReleaseType(pr, config.releaseLabels)
-    const releaseNotes = getReleaseNotes(pr, config.releaseNotesRegex, config.requireReleaseNotes)
-    const currentVersion = await getCurrentVersion()
+    const pr = await fetchPR(num, config)
+    const releaseType = getReleaseType(pr, config)
+    const releaseNotes = getReleaseNotes(pr, config)
+    const currentVersion = await getCurrentVersion(config)
 
-    const newVersion = semver.inc(`${currentVersion}`, releaseType)
-    const newTag = await createRelease(`${config.v}${newVersion}`, releaseNotes)
+    const newVersion = semver.inc(currentVersion, releaseType)
+    const newTag = await createRelease(newVersion, releaseNotes)
+    core.info(`Created release tag ${newTag} with the following release notes:\n${config.releaseNotes}\n`)
 
     core.setOutput('old-version', `${config.v}${currentVersion}`)
     core.setOutput('version', newTag)
@@ -92,39 +93,4 @@ function isMergeCommit() {
     return github.context.eventName === 'push' && github.context.payload.head_commit !== undefined
 }
 
-// Returns the most recent tagged version in git.
-async function getCurrentVersion() {
-    const data = await octokit().git.listMatchingRefs({
-        ...github.context.repo,
-        namespace: 'tags/'
-    })
-    
-    const versions = data.data
-        .map(ref => semver.parse(ref.ref.replace(/^refs\/tags\//g, ''), { loose: true }))
-        .filter(version => version !== null)
-        .sort(semver.rcompare)
-    
-    return versions[0] || semver.parse('v0.0.0')
-}
-
-// Tags the specified version and annotates it with the provided release notes.
-async function createRelease(tag, releaseNotes) {
-    core.info(`Creating release tag ${tag} with the following release notes:\n${releaseNotes}\n`)
-    const tagCreateResponse = await octokit().git.createTag({
-        ...github.context.repo,
-        tag: tag,
-        message: releaseNotes,
-        object: process.env.GITHUB_SHA,
-        type: 'commit',
-    })
-
-    await octokit().git.createRef({
-        ...github.context.repo,
-        ref: `refs/tags/${tag}`,
-        sha: tagCreateResponse.data.sha,
-    })
-
-    return tag
-}
-
-run();
+run()

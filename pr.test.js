@@ -1,4 +1,4 @@
-const { extractPRNumber, getReleaseType, getReleaseNotes } = require('./pr');
+const { extractPRNumber, getReleaseType, getReleaseNotes, fetchPR } = require('./pr');
 
 test('can extract a PR number from a PR merge commit message', () => {
     expect(extractPRNumber('Merge pull request #4 from some/mockBranch')).toEqual('4')
@@ -9,6 +9,28 @@ test('returns null if no PR number is found in a commit message', () => {
     expect(extractPRNumber('Merge branch master into some/mockBranch')).toEqual(null)
 })
 
+test('can fetch PR data', async () => {
+    process.env['GITHUB_REPOSITORY'] = 'mockUser/mockRepo'
+    const config = { octokit: { pulls: {
+        get: async (options) => {
+            return { data: { number: options.pull_number } }
+        }
+    }}}
+
+    expect(fetchPR(42, config)).resolves.toEqual({ number: 42 })
+})
+
+test('throws when fetching PR data fails', async () => {
+    process.env['GITHUB_REPOSITORY'] = 'mockUser/mockRepo'
+    const config = { octokit: { pulls: {
+        get: async () => {
+            throw new Error('mock error')
+        }
+    }}}
+
+    expect(fetchPR(42, config)).rejects.toThrow('')
+})
+
 test('can get release type', () => {
     const mockPR = {
         labels: [
@@ -17,13 +39,15 @@ test('can get release type', () => {
             { name: 'another one' },
         ]
     }
-    const releaseLabels = {
-        'mock-major-label': 'major',
-        'mock-minor-label': 'minor',
-        'mock-patch-label': 'patch',
+    const config = {
+        releaseLabels: {
+            'mock-major-label': 'major',
+            'mock-minor-label': 'minor',
+            'mock-patch-label': 'patch',
+        },
     }
     
-    const type = getReleaseType(mockPR, releaseLabels)
+    const type = getReleaseType(mockPR, config)
     expect(type).toEqual('major')
 })
 
@@ -35,14 +59,16 @@ test('throws if no valid release label is present', () => {
             { name: 'another one' },
         ]
     }
-    const releaseLabels = {
-        'mock-major-label': 'major',
-        'mock-minor-label': 'minor',
-        'mock-patch-label': 'patch',
+    const config = {
+        releaseLabels: {
+            'mock-major-label': 'major',
+            'mock-minor-label': 'minor',
+            'mock-patch-label': 'patch',
+        },
     }
     
     expect(() => {
-        getReleaseType(mockPR, releaseLabels)
+        getReleaseType(mockPR, config)
     }).toThrow('no release label specified on PR')
 })
 
@@ -54,14 +80,16 @@ test('throws if multiple valud release labels are present', () => {
             { name: 'mock-patch-label' },
         ]
     }
-    const releaseLabels = {
-        'mock-major-label': 'major',
-        'mock-minor-label': 'minor',
-        'mock-patch-label': 'patch',
+    const config = {
+        releaseLabels: {
+            'mock-major-label': 'major',
+            'mock-minor-label': 'minor',
+            'mock-patch-label': 'patch',
+        },
     }
     
     expect(() => {
-        getReleaseType(mockPR, releaseLabels)
+        getReleaseType(mockPR, config)
     }).toThrow('too many release labels specified on PR')
 })
 
