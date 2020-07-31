@@ -97,8 +97,12 @@ test('can get release notes', async () => {
     const mockPR = {
         body: "this is the body\nbegin notes\nhere are some release notes\nend notes\n"
     }
+    const config = {
+        releaseNotesRegex: new RegExp('begin notes([\\s\\S]*)end notes'),
+        requireReleaseNotes: false,
+    }
 
-    const notes = getReleaseNotes(mockPR, new RegExp('begin notes([\\s\\S]*)end notes'), false)
+    const notes = getReleaseNotes(mockPR, config)
     expect(notes).toEqual('here are some release notes')
 })
 
@@ -110,10 +114,14 @@ test('returns empty release notes if not required and not found or empty', async
         "this is the body\n-begin notes-\n\n\n-end notes-\nmore body\n",
         "this is the body\n-begin notes-      \n   \n  -end notes-\nmore body\n",
     ]
+    const config = {
+        releaseNotesRegex: new RegExp('-begin notes-([\\s\\S]*)-end notes-'),
+        requireReleaseNotes: false,
+    }
 
     bodies.forEach(body => {
         const mockPR = { body: body }
-        const notes = getReleaseNotes(mockPR, new RegExp('-begin notes-([\\s\\S]*)-end notes-'), false)
+        const notes = getReleaseNotes(mockPR, config)
         expect(notes).toBe('')
     })
 })
@@ -126,11 +134,15 @@ test('throws if release notes required but not found or empty', async () => {
         "this is the body\n-begin notes-\n\n\n-end notes-\nmore body\n",
         "this is the body\n-begin notes-      \n   \n  -end notes-\nmore body\n",
     ]
+    const config = {
+        releaseNotesRegex: new RegExp('-begin notes-([\\s\\S]*)-end notes-'),
+        requireReleaseNotes: true,
+    }
 
     bodies.forEach(body => {
         const mockPR = { body: body }
         expect(() => {
-            getReleaseNotes(mockPR, new RegExp('-begin notes-([\\s\\S]*)-end notes-'), true)
+            getReleaseNotes(mockPR, config)
         }).toThrow('missing release notes')
     })
 })

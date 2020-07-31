@@ -576,8 +576,8 @@ async function bumpAndTagNewVersion(config) {
     const currentVersion = await getCurrentVersion(config)
 
     const newVersion = semver.inc(currentVersion, releaseType)
-    const newTag = await createRelease(newVersion, releaseNotes)
-    core.info(`Created release tag ${newTag} with the following release notes:\n${config.releaseNotes}\n`)
+    const newTag = await createRelease(newVersion, releaseNotes, config)
+    core.info(`Created release tag ${newTag} with the following release notes:\n${releaseNotes}\n`)
 
     core.setOutput('old-version', `${config.v}${currentVersion}`)
     core.setOutput('version', newTag)
@@ -1712,16 +1712,16 @@ function getReleaseType(pr, config) {
 }
 
 // Extracts the release notes from the PR body.
-function getReleaseNotes(pr, regex, required) {
+function getReleaseNotes(pr, config) {
     let notes = ''
     if (pr.body !== null && pr.body !== '') {
-        const matches = pr.body.match(regex)
+        const matches = pr.body.match(config.releaseNotesRegex)
         if (matches !== null && matches.length > 1) {
             notes = matches[1].trim()
         }
     }
 
-    if (notes === ''  && required) {
+    if (notes === ''  && config.requireReleaseNotes) {
         throw new Error('missing release notes')
     }
 
