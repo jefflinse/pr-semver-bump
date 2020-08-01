@@ -478,7 +478,7 @@ function getConfig() {
         mode: mode,
         octokit: github.getOctokit(token),
         releaseLabels: releaseLabels,
-        releaseNotesRegex: new RegExp(`${releaseNotesPrefix}([\\s\\S]*)${releaseNotesSuffix}`),
+        releaseNotesRegex: new RegExp(`${releaseNotesPrefix}([^]*)${releaseNotesSuffix}`),
         requireReleaseNotes: core.getInput('require-release-notes').toLowerCase() === 'true',
         v: core.getInput('with-v').toLowerCase() === 'true' ? 'v' : '',
     };

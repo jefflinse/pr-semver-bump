@@ -72,7 +72,7 @@ test('throws if no valid release label is present', () => {
     }).toThrow('no release label specified on PR')
 })
 
-test('throws if multiple valud release labels are present', () => {
+test('throws if multiple valid release labels are present', () => {
     const mockPR = {
         labels: [
             { name: 'mock-major-label' },
@@ -93,17 +93,103 @@ test('throws if multiple valud release labels are present', () => {
     }).toThrow('too many release labels specified on PR')
 })
 
-test('can get release notes', async () => {
-    const mockPR = {
-        body: "this is the body\nbegin notes\nhere are some release notes\nend notes\n"
-    }
-    const config = {
-        releaseNotesRegex: new RegExp('begin notes([\\s\\S]*)end notes'),
-        requireReleaseNotes: false,
-    }
+describe('can parse release notes', async () => {
+    const tests = [
+        {
+            name: "when body is empty",
+            body: "",
+            before: '',
+            after: '',
+            expected: "",
+        },
+        {
+            name: "from a single line body",
+            body: "a single line body",
+            before: '',
+            after: '',
+            expected: "a single line body",
+        },
+        {
+            name: "from a single line body with surrounding whitespace",
+            body: " \t a single line body within whitespace \t ",
+            before: '',
+            after: '',
+            expected: "a single line body within whitespace",
+        },
+        {
+            name: "from a multline body",
+            body: "a multiple\nline body with\n\n newlines",
+            before: '',
+            after: '',
+            expected: "a multiple\nline body with\n\n newlines",
+        },
+        {
+            name: "from a multiline body with surrounding whitespace",
+            body: " \t\n a multiple\nline body with\n\n newlines within whitespace \t\n ",
+            before: '',
+            after: '',
+            expected: "a multiple\nline body with\n\n newlines within whitespace",
+        },
+        {
+            name: "from a single line body containing single line notes using a prefix and suffix",
+            body: "before--begin--a single line--end---after",
+            before: '--begin--',
+            after: '--end--',
+            expected: "a single line",
+        },
+        {
+            name: "from a multiline body containing single line notes using a prefix",
+            body: "before\n\n--begin--\n\na single line\n\n--end---\n\nafter",
+            before: '--begin--',
+            after: '',
+            expected: "a single line\n\n--end---\n\nafter",
+        },
+        {
+            name: "from a multiline body containing multiline notes using a prefix",
+            body: "before\n\n--begin--\n\nmany\ndifferent lines\n\nhere\n\n--end---\n\nafter",
+            before: '--begin--',
+            after: '',
+            expected: "many\ndifferent lines\n\nhere\n\n--end---\n\nafter",
+        },
+        {
+            name: "from a single line body containing single line notes using a prefix and suffix",
+            body: "before\n\n--begin--\n\na single line\n\n--end---\n\nafter",
+            before: '',
+            after: '--end--',
+            expected: "before\n\n--begin--\n\na single line",
+        },
+        {
+            name: "",
+            body: "before\n\n--begin--\n\nmany\ndifferent lines\n\nhere\n\n--end---\n\nafter",
+            before: '',
+            after: '--end--',
+            expected: "before\n\n--begin--\n\nmany\ndifferent lines\n\nhere",
+        },
+        {
+            name: "",
+            body: "before\n\n--begin--\n\na single line\n\n--end---\n\nafter",
+            before: '--begin--',
+            after: '--end--',
+            expected: "a single line",
+        },
+        {
+            name: "with multiline notes from a multiline body using a prefix and suffix",
+            body: "before\n\n--begin--\n\nmany\ndifferent lines\n\nhere\n\n--end---\n\nafter",
+            before: '--begin--',
+            after: '--end--',
+            expected: "many\ndifferent lines\n\nhere",
+        },
+    ]
 
-    const notes = getReleaseNotes(mockPR, config)
-    expect(notes).toEqual('here are some release notes')
+    tests.forEach(test => {
+        const config = {
+            releaseNotesRegex: new RegExp(`${test.before}([^]*)${test.after}`),
+            requireReleaseNotes: false,
+        }
+
+        const notes = getReleaseNotes({ body: test.body }, config)
+        expect(notes).toBe(test.expected)
+    })
 })
 
 test('returns empty release notes if not required and not found or empty', async () => {
@@ -115,7 +201,7 @@ test('returns empty release notes if not required and not found or empty', async
         "this is the body\n-begin notes-      \n   \n  -end notes-\nmore body\n",
     ]
     const config = {
-        releaseNotesRegex: new RegExp('-begin notes-([\\s\\S]*)-end notes-'),
+        releaseNotesRegex: new RegExp('-begin notes-([^]*)-end notes-'),
         requireReleaseNotes: false,
     }
 
@@ -135,7 +221,7 @@ test('throws if release notes required but not found or empty', async () => {
         "this is the body\n-begin notes-      \n   \n  -end notes-\nmore body\n",
     ]
     const config = {
-        releaseNotesRegex: new RegExp('-begin notes-([\\s\\S]*)-end notes-'),
+        releaseNotesRegex: new RegExp('-begin notes-([^]*)-end notes-'),
         requireReleaseNotes: true,
     }
 
