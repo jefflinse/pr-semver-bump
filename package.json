@@ -1,6 +1,6 @@
 {
   "name": "pr-semver-bump",
-  "version": "0.1.2",
+  "version": "1.0.0",
   "description": "A GitHub Action to bump and tag a new semantic version when a pull request is merged.",
   "main": "index.js",
   "scripts": {
