@@ -1,7 +1,7 @@
 {
   "name": "pr-semver-bump",
-  "version": "0.1.1",
-  "description": "An Action to bump and tag a new version based on pull request metadata",
+  "version": "0.1.2",
+  "description": "A GitHub Action to bump and tag a new semantic version when a pull request is merged.",
   "main": "index.js",
   "scripts": {
     "lint": "eslint .",

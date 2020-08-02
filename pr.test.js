@@ -93,7 +93,7 @@ test('throws if multiple valid release labels are present', () => {
     }).toThrow('too many release labels specified on PR')
 })
 
-describe('can parse release notes', async () => {
+describe('can parse release notes', () => {
     const tests = [
         {
             name: "when body is empty",
@@ -187,8 +187,10 @@ describe('can parse release notes', async () => {
             requireReleaseNotes: false,
         }
 
-        const notes = getReleaseNotes({ body: test.body }, config)
-        expect(notes).toBe(test.expected)
+        expect(() => {
+            const notes = getReleaseNotes({ body: test.body }, config)
+            expect(notes).toBe(test.expected)
+        }).not.toThrow()
     })
 })
 
