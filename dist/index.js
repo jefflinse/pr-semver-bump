@@ -478,7 +478,7 @@ function getConfig() {
         mode: mode,
         octokit: github.getOctokit(token),
         releaseLabels: releaseLabels,
-        releaseNotesRegex: new RegExp(`${releaseNotesPrefix}([\\s\\S]*)${releaseNotesSuffix}`),
+        releaseNotesRegex: new RegExp(`${releaseNotesPrefix}([^]*)${releaseNotesSuffix}`),
         requireReleaseNotes: core.getInput('require-release-notes').toLowerCase() === 'true',
         v: core.getInput('with-v').toLowerCase() === 'true' ? 'v' : '',
     };
@@ -576,8 +576,8 @@ async function bumpAndTagNewVersion(config) {
     const currentVersion = await getCurrentVersion(config)
 
     const newVersion = semver.inc(currentVersion, releaseType)
-    const newTag = await createRelease(newVersion, releaseNotes)
-    core.info(`Created release tag ${newTag} with the following release notes:\n${config.releaseNotes}\n`)
+    const newTag = await createRelease(newVersion, releaseNotes, config)
+    core.info(`Created release tag ${newTag} with the following release notes:\n${releaseNotes}\n`)
 
     core.setOutput('old-version', `${config.v}${currentVersion}`)
     core.setOutput('version', newTag)
@@ -1712,16 +1712,16 @@ function getReleaseType(pr, config) {
 }
 
 // Extracts the release notes from the PR body.
-function getReleaseNotes(pr, regex, required) {
+function getReleaseNotes(pr, config) {
     let notes = ''
     if (pr.body !== null && pr.body !== '') {
-        const matches = pr.body.match(regex)
+        const matches = pr.body.match(config.releaseNotesRegex)
         if (matches !== null && matches.length > 1) {
             notes = matches[1].trim()
         }
     }
 
-    if (notes === ''  && required) {
+    if (notes === ''  && config.requireReleaseNotes) {
         throw new Error('missing release notes')
     }
 
@@ -7864,12 +7864,12 @@ const github = __webpack_require__(469)
 const semver = __webpack_require__(876)
 
 // Tags the specified version and annotates it with the provided release notes.
-async function createRelease(version, config) {
+async function createRelease(version, releaseNotes, config) {
     const tag = `${config.v}${version}`
     const tagCreateResponse = await config.octokit.git.createTag({
         ...github.context.repo,
         tag: tag,
-        message: config.releaseNotes,
+        message: releaseNotes,
         object: process.env.GITHUB_SHA,
         type: 'commit',
     })

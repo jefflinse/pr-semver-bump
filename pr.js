@@ -40,16 +40,16 @@ function getReleaseType(pr, config) {
 }
 
 // Extracts the release notes from the PR body.
-function getReleaseNotes(pr, regex, required) {
+function getReleaseNotes(pr, config) {
     let notes = ''
     if (pr.body !== null && pr.body !== '') {
-        const matches = pr.body.match(regex)
+        const matches = pr.body.match(config.releaseNotesRegex)
         if (matches !== null && matches.length > 1) {
             notes = matches[1].trim()
         }
     }
 
-    if (notes === ''  && required) {
+    if (notes === ''  && config.requireReleaseNotes) {
         throw new Error('missing release notes')
     }
 

@@ -45,7 +45,7 @@ test('can create a new release', async () => {
     }
 
     config.v = ''
-    expect(createRelease('1.2.3', config)).resolves.toBe('1.2.3')
+    expect(createRelease('1.2.3', 'mock release notes', config)).resolves.toBe('1.2.3')
     config.v = 'v'
-    expect(createRelease('1.2.3', config)).resolves.toBe('v1.2.3')
+    expect(createRelease('1.2.3', 'mock release notes', config)).resolves.toBe('v1.2.3')
 })
