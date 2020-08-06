@@ -14,6 +14,16 @@ function getConfig() {
     const releaseNotesPrefix = core.getInput('release-notes-prefix');
     const releaseNotesSuffix = core.getInput('release-notes-suffix');
 
+    let releaseNotesPrefixPattern = undefined;
+    if (releaseNotesPrefix !== undefined && releaseNotesPrefix != "") {
+        releaseNotesPrefixPattern = new RegExp(releaseNotesPrefix);
+    }
+
+    let releaseNotesSuffixPattern = undefined;
+    if (releaseNotesSuffix !== undefined && releaseNotesSuffix != "") {
+        releaseNotesSuffixPattern = new RegExp(releaseNotesSuffix);
+    }
+
     var releaseLabels = {};
     releaseLabels[core.getInput('major-label') || 'major release'] = 'major';
     releaseLabels[core.getInput('minor-label') || 'minor release'] = 'minor';
@@ -23,7 +33,8 @@ function getConfig() {
         mode: mode,
         octokit: github.getOctokit(token),
         releaseLabels: releaseLabels,
-        releaseNotesRegex: new RegExp(`${releaseNotesPrefix}([^]*)${releaseNotesSuffix}`),
+        releaseNotesPrefixPattern: releaseNotesPrefixPattern,
+        releaseNotesSuffixPattern: releaseNotesSuffixPattern,
         requireReleaseNotes: core.getInput('require-release-notes').toLowerCase() === 'true',
         v: core.getInput('with-v').toLowerCase() === 'true' ? 'v' : '',
     };

@@ -43,10 +43,24 @@ function getReleaseType(pr, config) {
 function getReleaseNotes(pr, config) {
     let notes = ''
     if (pr.body !== null && pr.body !== '') {
-        const matches = pr.body.match(config.releaseNotesRegex)
-        if (matches !== null && matches.length > 1) {
-            notes = matches[1].trim()
+        let lines = pr.body.split(/\r?\n/);
+        let withinNotes = config.releaseNotesPrefixPattern === undefined;
+
+        for (let i in lines) {
+            let line = lines[i];
+
+            if (withinNotes) {
+                if (config.releaseNotesSuffixPattern !== undefined && config.releaseNotesSuffixPattern.test(line)) {
+                    break;
+                }
+
+                notes += line + "\n";
+            } else if (config.releaseNotesPrefixPattern !== undefined && config.releaseNotesPrefixPattern.test(line)) {
+                withinNotes = true;
+            }
         }
+
+        notes = notes.trim();
     }
 
     if (notes === ''  && config.requireReleaseNotes) {
