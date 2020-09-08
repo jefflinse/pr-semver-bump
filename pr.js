@@ -70,7 +70,7 @@ function getReleaseNotes(pr, config) {
         throw new Error('missing release notes')
     }
 
-    return notes.join("\n");
+    return notes.join("\n").trim();
 }
 
 exports.extractPRNumber = extractPRNumber
