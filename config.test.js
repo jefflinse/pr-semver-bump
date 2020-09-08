@@ -12,7 +12,8 @@ test('establishes config from minimum required inputs', () => {
         'minor release': 'minor',
         'patch release': 'patch',
     })
-    expect(config.releaseNotesRegex).toBeUndefined()
+    expect(config.releaseNotesPrefixPattern).toBeUndefined()
+    expect(config.releaseNotesSuffixPattern).toBeUndefined()
     expect(config.requireReleaseNotes).toBe(false)
     expect(config.v).toBe('')
     expect(config.octokit).toBeDefined()

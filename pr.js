@@ -41,7 +41,7 @@ function getReleaseType(pr, config) {
 
 // Extracts the release notes from the PR body.
 function getReleaseNotes(pr, config) {
-    let notes = new Array();
+    let notes = [];
 
     if (pr.body !== null && pr.body !== '') {
         let lines = pr.body.split(/\r?\n/);
@@ -49,7 +49,7 @@ function getReleaseNotes(pr, config) {
         let firstLine = 0;
         let lastLine = lines.length;
 
-        for (let i=0; i<lines.length; i++) {
+        for (let i = 0; i < lines.length; i++) {
             let line = lines[i];
 
             if (withinNotes) {
