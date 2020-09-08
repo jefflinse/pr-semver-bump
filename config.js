@@ -14,13 +14,13 @@ function getConfig() {
     const releaseNotesPrefix = core.getInput('release-notes-prefix');
     const releaseNotesSuffix = core.getInput('release-notes-suffix');
 
-    let releaseNotesPrefixPattern = undefined;
-    if (releaseNotesPrefix !== undefined && releaseNotesPrefix != "") {
+    let releaseNotesPrefixPattern;
+    if (releaseNotesPrefix !== undefined && releaseNotesPrefix !== "") {
         releaseNotesPrefixPattern = new RegExp(releaseNotesPrefix);
     }
 
-    let releaseNotesSuffixPattern = undefined;
-    if (releaseNotesSuffix !== undefined && releaseNotesSuffix != "") {
+    let releaseNotesSuffixPattern;
+    if (releaseNotesSuffix !== undefined && releaseNotesSuffix !== "") {
         releaseNotesSuffixPattern = new RegExp(releaseNotesSuffix);
     }
 

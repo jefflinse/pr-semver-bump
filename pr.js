@@ -41,33 +41,30 @@ function getReleaseType(pr, config) {
 
 // Extracts the release notes from the PR body.
 function getReleaseNotes(pr, config) {
-    let notes = ''
+    let notes = new Array();
+
     if (pr.body !== null && pr.body !== '') {
         let lines = pr.body.split(/\r?\n/);
         let withinNotes = config.releaseNotesPrefixPattern === undefined;
 
-        for (let i in lines) {
-            let line = lines[i];
-
+        lines.forEach(line => {
             if (withinNotes) {
                 if (config.releaseNotesSuffixPattern !== undefined && config.releaseNotesSuffixPattern.test(line)) {
                     break;
                 }
 
-                notes += line + "\n";
+                notes.push(line);
             } else if (config.releaseNotesPrefixPattern !== undefined && config.releaseNotesPrefixPattern.test(line)) {
                 withinNotes = true;
             }
-        }
-
-        notes = notes.trim();
+        });
     }
 
-    if (notes === ''  && config.requireReleaseNotes) {
+    if (notes.length === 0  && config.requireReleaseNotes) {
         throw new Error('missing release notes')
     }
 
-    return notes
+    return notes.join("\n");
 }
 
 exports.extractPRNumber = extractPRNumber
