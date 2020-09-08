@@ -103,8 +103,8 @@ Inputs can be used to customize the behavior of the action in both modes.
 | `minor-label` | The name of the label that indicates the pull request should result in a **minor** version bump. _Default: 'minor release'_. |
 | `patch-label` | The name of the label that indicates the pull request should result in a **patch** version bump. _Default: 'patch release'_. |
 | `require-release-notes` | Whether or not release notes are required. |
-| `release-notes-prefix` | If defined, constrains release notes to any text appearing after this pattern in the pull request body. By default, release notes start at the beginning of the PR description. |
-| `release-notes-suffix` | If defined, constrains release notes to any text appearing before this pattern in the pull request body. By default, release notes end at the end of the PR description. |
+| `release-notes-prefix` | If defined, constrains release notes to any text appearing after a line matching this pattern in the pull request body. By default, release notes start at the beginning of the PR description. |
+| `release-notes-suffix` | If defined, constrains release notes to any text appearing before a line matching this pattern in the pull request body. By default, release notes end at the end of the PR description. |
 | `with-v` | If true, newly tagged versions will be prefixed with 'v', e.g. 'v1.2.3'. |
 
 ### Using Custom Label Names
@@ -138,7 +138,7 @@ with:
 
 ### Constraining Release Notes
 
-By default, the entire pull request description is used as the release notes. If you want to constrain the release notes to just a subset of the description, you can define `release-notes-prefix` and/or `release-notes-suffix` as bounding patterns for the release notes. Text appearing before the prefix or after the suffix will be ignored.
+By default, the entire pull request description is used as the release notes. If you want to constrain the release notes to just a subset of the description, you can define `release-notes-prefix` and/or `release-notes-suffix` as bounding patterns for the release notes. Lines matching these patterns frame the desired release notes. Any text appearing before the prefix line or after the suffix line will be ignored.
 
 ```yaml
 uses: jefflinse/pr-semver-bump
