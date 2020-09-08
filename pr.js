@@ -46,20 +46,24 @@ function getReleaseNotes(pr, config) {
     if (pr.body !== null && pr.body !== '') {
         let lines = pr.body.split(/\r?\n/);
         let withinNotes = config.releaseNotesPrefixPattern === undefined;
+        let firstLine = 0;
+        let lastLine = lines.length;
 
-        for (let i in lines) {
+        for (let i=0; i<lines.length; i++) {
             let line = lines[i];
 
             if (withinNotes) {
                 if (config.releaseNotesSuffixPattern !== undefined && config.releaseNotesSuffixPattern.test(line)) {
+                    lastLine = i;
                     break;
                 }
-
-                notes.push(line);
             } else if (config.releaseNotesPrefixPattern !== undefined && config.releaseNotesPrefixPattern.test(line)) {
+                firstLine = i + 1;
                 withinNotes = true;
             }
         }
+
+        notes = lines.slice(firstLine, lastLine);
     }
 
     if (notes.length === 0  && config.requireReleaseNotes) {

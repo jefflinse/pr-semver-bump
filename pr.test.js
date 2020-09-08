@@ -197,14 +197,11 @@ describe('can parse release notes', () => {
 test('returns empty release notes if not required and not found or empty', async () => {
     const bodies = [
         "",
-        "this is the body",
-        "this is the body\n-begin notes--end notes-\nmore body\n",
-        "this is the body\n-begin notes-\n\n\n-end notes-\nmore body\n",
-        "this is the body\n-begin notes-      \n   \n  -end notes-\nmore body\n",
+        "--begin--\n--end--",
     ]
     const config = {
-        releaseNotesPrefixPattern: new RegExp('nope'),
-        releaseNotesSuffixPattern: new RegExp('still nope'),
+        releaseNotesPrefixPattern: new RegExp('--begin--'),
+        releaseNotesSuffixPattern: new RegExp('--end--'),
         requireReleaseNotes: false,
     }
 
@@ -218,14 +215,11 @@ test('returns empty release notes if not required and not found or empty', async
 test('throws if release notes required but not found or empty', async () => {
     const bodies = [
         "",
-        "this is the body",
-        "this is the body\n-begin notes--end notes-\nmore body\n",
-        "this is the body\n-begin notes-\n\n\n-end notes-\nmore body\n",
-        "this is the body\n-begin notes-      \n   \n  -end notes-\nmore body\n",
+        "--begin--\n--end--",
     ]
     const config = {
-        releaseNotesPrefixPattern: new RegExp('nope'),
-        releaseNotesSuffixPattern: new RegExp('still nope'),
+        releaseNotesPrefixPattern: new RegExp('--begin--'),
+        releaseNotesSuffixPattern: new RegExp('--end--'),
         requireReleaseNotes: true,
     }
 
