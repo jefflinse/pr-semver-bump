@@ -172,6 +172,13 @@ describe('can parse release notes', () => {
             after: '--end--',
             expected: "\nmany\ndifferent lines\n\nhere\n",
         },
+        {
+            name: "with multiline notes from a multiline body using line-matching patterns",
+            body: "before\n\n--begin--\n\nmany\ndifferent lines\n\nhere\n\n--anything--\n\nafter",
+            before: '^--begin--$',
+            after: '^--[^-]',
+            expected: "\nmany\ndifferent lines\n\nhere\n",
+        },
     ]
 
     tests.forEach(test => {
