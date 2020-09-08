@@ -47,7 +47,9 @@ function getReleaseNotes(pr, config) {
         let lines = pr.body.split(/\r?\n/);
         let withinNotes = config.releaseNotesPrefixPattern === undefined;
 
-        lines.forEach(line => {
+        for (let i in lines) {
+            let line = lines[i];
+
             if (withinNotes) {
                 if (config.releaseNotesSuffixPattern !== undefined && config.releaseNotesSuffixPattern.test(line)) {
                     break;
@@ -57,7 +59,7 @@ function getReleaseNotes(pr, config) {
             } else if (config.releaseNotesPrefixPattern !== undefined && config.releaseNotesPrefixPattern.test(line)) {
                 withinNotes = true;
             }
-        });
+        }
     }
 
     if (notes.length === 0  && config.requireReleaseNotes) {
