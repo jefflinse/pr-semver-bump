@@ -175,7 +175,7 @@ Create a validation workflow to run whenever a pull request is created or update
 _.github/workflows/**pr.yml**:_
 
 ```yaml
-name: Pull Request Release Info
+name: Release Info
 on:
   pull_request:
     types: [labeled, unlabeled, opened, edited, reopened, synchronize, ready_for_review]
@@ -204,11 +204,11 @@ Create a CI workflow to run whenever a pull request is merged. All optional inpu
 _.github/workflows/**ci.yml**:_
 
 ```yaml
-name: Master CI
+name: Main CI
 on:
   push:
     branches:
-      - master
+      - main
 jobs:
   bump-tag-version:
     name: Bump and Tag Version
