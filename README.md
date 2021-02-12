@@ -232,3 +232,19 @@ jobs:
 ## Contributing
 
 This project is actively maintained. Please open an issue if you find a bug, or better yet, submit a pull request :)
+
+### Building
+
+This is a Node.js project. Make sure you have Node and NPM installed, then:
+
+Install dependencies:
+
+```shell
+npm i
+```
+
+Verify your changes:
+
+```shell
+npm run all
+```
