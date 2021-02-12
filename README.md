@@ -13,7 +13,7 @@ A typical workflow using this action is:
 2. The nature of the next version is discussed as part of a code review. A specific tag is applied to the pull request indicating the nature of the changes (e.g. "major", "minor", or "patch").
 3. Upon merging the pull request, a new semantic version is tagged automatically. The version number and release notes are determined using the pull request's metadata.
 
-Most aspects are [customizable](#full-example).
+Many [inputs](#inputs) are customizable and the [outputs](#outputs) can be used in downstream steps or jobs. See the [full example](#full-example).
 
 ## Motivation
 
@@ -23,7 +23,7 @@ Most version bumping workflows rely on the presense of substrings in commit mess
 
 ## Usage
 
-pr-semver-bump runs in one of two modes: `validate` and `bump`.
+**pr-semver-bump** runs in one of two modes: `validate` and `bump`.
 
 Use **validate** mode as a merge gate for pull requests to ensure they contain the necessary metadata for your next release:
 
