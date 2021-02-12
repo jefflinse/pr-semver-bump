@@ -228,3 +228,7 @@ jobs:
           release-notes-suffix: ''
           with-v: false
 ```
+
+## Contributing
+
+This project is actively maintained. Please open an issue if you find a bug, or better yet, submit a pull request :)
