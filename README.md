@@ -23,7 +23,48 @@ Most version bumping workflows rely on the presense of substrings in commit mess
 
 ## Usage
 
-pr-semver-bump runs in one of two modes: `validate` and `bump`. Use validation mode as a merge gate for pull requests to ensure they contain the necessary metadata for your next release. Use bump mode to tag a new release after a pull request actually merges, using that metadata.
+pr-semver-bump runs in one of two modes: `validate` and `bump`.
+
+Use **validate** mode as a merge gate for pull requests to ensure they contain the necessary metadata for your next release:
+
+```yaml
+name: Release Info
+on:
+  pull_request:
+    types: [labeled, unlabeled, opened, edited, reopened, synchronize, ready_for_review]
+jobs:
+  check-pr:
+    name: Validate Release Label and Notes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: jefflinse/pr-semver-bumpv1
+        name: Validate Pull Request Metadata
+        with:
+          mode: validate
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+```
+
+Use **bump** mode to tag a new release after a pull request actually merges, using that metadata:
+
+```yaml
+name: Main CI
+on:
+  push:
+    branches:
+      - main
+jobs:
+  bump-tag-version:
+    name: Bump and Tag Version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: jefflinse/pr-semver-bump@v1
+        name: Bump and Tag Version
+        with:
+          mode: bump
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+```
 
 The action will fail if any of the following are true:
 
