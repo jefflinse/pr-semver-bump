@@ -38,7 +38,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - uses: jefflinse/pr-semver-bumpv1
+      - uses: jefflinse/pr-semver-bump@v1
         name: Validate Pull Request Metadata
         with:
           mode: validate
@@ -95,7 +95,7 @@ By default, the action expects pull requests to be [labeled](https://docs.github
 You can specify your own labels instead. For example, if you always use minor releases for features and patch releases for bugs, you might want:
 
 ```yaml
-uses: jefflinse/pr-semver-bump
+uses: jefflinse/pr-semver-bump@v1
 name: Validate PR Metadata
 with:
   mode: validate
@@ -109,7 +109,7 @@ with:
 Setting `require-release-notes: true` in your workflow configuration will require that some sort of release notes be present. By default, the entire pull request description is used as release notes.
 
 ```yaml
-uses: jefflinse/pr-semver-bump
+uses: jefflinse/pr-semver-bump@v1
 name: Validate PR Metadata
 with:
   mode: validate
@@ -122,7 +122,7 @@ with:
 By default, the entire pull request description is used as the release notes. If you want to constrain the release notes to just a subset of the description, you can define `release-notes-prefix` and/or `release-notes-suffix` as bounding patterns for the release notes. Lines matching these patterns frame the desired release notes. Any text appearing before the prefix pattern or after the suffix pattern will be ignored.
 
 ```yaml
-uses: jefflinse/pr-semver-bump
+uses: jefflinse/pr-semver-bump@v1
   name: Validate PR Metadata
   with:
     mode: validate
@@ -185,7 +185,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - uses: jefflinse/pr-semver-bumpv1
+      - uses: jefflinse/pr-semver-bump@v1
         name: Validate Pull Request Metadata
         with:
           mode: validate
