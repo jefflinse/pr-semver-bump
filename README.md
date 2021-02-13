@@ -66,7 +66,7 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 ```
 
-The action will fail if any of the following are true:
+The action will fail (in either mode) if any of the following are true:
 
 - the pull request is not labeled with an appropriate release label;
 - the pull request is labeled with more than one release label;
