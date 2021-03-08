@@ -8,6 +8,14 @@ function extractPRNumber(commitMsg) {
         return matches[1].trim()
     }
 
+    // Squash Merges do not have the merge pull request commit message
+    // but use the PR Title (#<pr num>) syntax by default
+    const squash_re = /\(#(\d+)\)/
+    const squash_matches = commitMsg.match(squash_re)
+    if (squash_matches !== null && squash_matches.length > 1) {
+        return squash_matches[1].trim()
+    }
+
     return null
 }
 
