@@ -3,6 +3,9 @@ const { extractPRNumber, getReleaseType, getReleaseNotes, fetchPR } = require('.
 test('can extract a PR number from a PR merge commit message', () => {
     expect(extractPRNumber('Merge pull request #4 from some/mockBranch')).toEqual('4')
     expect(extractPRNumber('Merge pull request #42 from some/mockBranch')).toEqual('42')
+})
+
+test('can extract a PR number from a squash merge commit message', () => {
     expect(extractPRNumber('My PR squashed (#56)')).toEqual('56')
     expect(extractPRNumber('Squash pr (#45)\n\n multiple commit messages appended')).toEqual('45')
 })
