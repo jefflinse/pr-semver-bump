@@ -5,6 +5,11 @@ test('can extract a PR number from a PR merge commit message', () => {
     expect(extractPRNumber('Merge pull request #42 from some/mockBranch')).toEqual('42')
 })
 
+test('can extract a PR number from a squash merge commit message', () => {
+    expect(extractPRNumber('My PR squashed (#56)')).toEqual('56')
+    expect(extractPRNumber('Squash pr (#45)\n\n multiple commit messages appended')).toEqual('45')
+})
+
 test('returns null if no PR number is found in a commit message', () => {
     expect(extractPRNumber('Merge branch master into some/mockBranch')).toEqual(null)
 })
