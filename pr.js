@@ -19,6 +19,27 @@ function extractPRNumber(commitMsg) {
     return null
 }
 
+async function searchPRByCommit(commit_sha, config) {
+    // Query GitHub to see if the commit sha is related to a PR
+    // Rebase merge will not have the information in the commit message
+    try {
+        const q = "type:pull-request is:merged " + commit_sha
+        const data = await config.octokit.search.issuesAndPullRequests({ 
+             q 
+        });
+
+        if(data.data.total_count <1)
+            throw new Error(`No results found querying for the PR`)
+
+        // We should only find one PR with the commit SHA that was merged so take the first one
+        const pr = data.data.items[0]
+        return pr
+    }
+    catch (fetchError) {
+        throw new Error(`Failed to find PR by commit SHA ${commit_sha}: ${fetchError.message}`)
+    }
+}
+
 // Fetches the details of a pull request.
 async function fetchPR(num, config) {
     try {
@@ -82,6 +103,7 @@ function getReleaseNotes(pr, config) {
 }
 
 exports.extractPRNumber = extractPRNumber
+exports.searchPRByCommit = searchPRByCommit
 exports.fetchPR = fetchPR
 exports.getReleaseType = getReleaseType
 exports.getReleaseNotes = getReleaseNotes

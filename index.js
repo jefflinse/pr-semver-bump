@@ -2,7 +2,7 @@ const core = require('@actions/core')
 const github = require('@actions/github')
 const semver = require('semver')
 const { getConfig } = require('./config')
-const { extractPRNumber, fetchPR, getReleaseType, getReleaseNotes } = require("./pr")
+const { extractPRNumber, searchPRByCommit, fetchPR, getReleaseType, getReleaseNotes } = require("./pr")
 const { createRelease, getCurrentVersion } = require("./version")
 
 async function run() {
@@ -61,15 +61,23 @@ async function bumpAndTagNewVersion(config) {
         return
     }
 
-    const num = extractPRNumber(github.context.payload.head_commit.message)
-    if (num === null) {
-        // Don't want to fail the job if some other commit comes in, but let's warn about it.
-        // Might be a good point for configuration in the future.
-        core.warning(`head commit doesn't look like a PR merge, skipping version bumping and tagging`)
-        return
+    let num = extractPRNumber(github.context.payload.head_commit.message)
+    let pr
+    if (num == null) {
+        core.info("Unable to determine PR from commit msg, searching for PR by SHA") 
+        // Try to search the commit sha for the PR number
+        pr = await searchPRByCommit(process.env.GITHUB_SHA, config)
+        if(pr == null ) {
+            // Don't want to fail the job if some other commit comes in, but let's warn about it.
+            // Might be a good point for configuration in the future.
+            core.warning(`head commit doesn't look like a PR merge, skipping version bumping and tagging`)
+            return
+        }
     }
-
-    const pr = await fetchPR(num, config)
+    else {
+        pr = await fetchPR(num, config)
+    }
+    core.info(`Processing version bump for PR request #${pr.number}`) 
     const releaseType = getReleaseType(pr, config)
     const releaseNotes = getReleaseNotes(pr, config)
     const currentVersion = await getCurrentVersion(config)
