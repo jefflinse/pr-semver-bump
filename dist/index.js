@@ -576,7 +576,7 @@ const core = __webpack_require__(470)
 const github = __webpack_require__(469)
 const semver = __webpack_require__(876)
 const { getConfig } = __webpack_require__(68)
-const { extractPRNumber, fetchPR, getReleaseType, getReleaseNotes } = __webpack_require__(247)
+const { extractPRNumber, searchPRByCommit, fetchPR, getReleaseType, getReleaseNotes } = __webpack_require__(247)
 const { createRelease, getCurrentVersion } = __webpack_require__(935)
 
 async function run() {
@@ -635,15 +635,23 @@ async function bumpAndTagNewVersion(config) {
         return
     }
 
-    const num = extractPRNumber(github.context.payload.head_commit.message)
-    if (num === null) {
-        // Don't want to fail the job if some other commit comes in, but let's warn about it.
-        // Might be a good point for configuration in the future.
-        core.warning(`head commit doesn't look like a PR merge, skipping version bumping and tagging`)
-        return
+    let num = extractPRNumber(github.context.payload.head_commit.message)
+    let pr
+    if (num == null) {
+        core.info("Unable to determine PR from commit msg, searching for PR by SHA") 
+        // Try to search the commit sha for the PR number
+        pr = await searchPRByCommit(process.env.GITHUB_SHA, config)
+        if(pr == null) {
+            // Don't want to fail the job if some other commit comes in, but let's warn about it.
+            // Might be a good point for configuration in the future.
+            core.warning(`head commit doesn't look like a PR merge, skipping version bumping and tagging`)
+            return
+        }
     }
-
-    const pr = await fetchPR(num, config)
+    else {
+        pr = await fetchPR(num, config)
+    }
+    core.info(`Processing version bump for PR request #${pr.number}`) 
     const releaseType = getReleaseType(pr, config)
     const releaseNotes = getReleaseNotes(pr, config)
     const currentVersion = await getCurrentVersion(config)
@@ -1764,6 +1772,28 @@ function extractPRNumber(commitMsg) {
     return null
 }
 
+async function searchPRByCommit(commit_sha, config) {
+    // Query GitHub to see if the commit sha is related to a PR
+    // Rebase merge will not have the information in the commit message
+    try {
+        const q = "type:pull-request is:merged " + commit_sha
+        const data = await config.octokit.search.issuesAndPullRequests({ 
+             q 
+        });
+
+        if (data.data.total_count <1) {
+            throw new Error(`No results found querying for the PR`)
+        }
+
+        // We should only find one PR with the commit SHA that was merged so take the first one
+        const pr = data.data.items[0]
+        return pr
+    }
+    catch (fetchError) {
+        throw new Error(`Failed to find PR by commit SHA ${commit_sha}: ${fetchError.message}`)
+    }
+}
+
 // Fetches the details of a pull request.
 async function fetchPR(num, config) {
     try {
@@ -1827,6 +1857,7 @@ function getReleaseNotes(pr, config) {
 }
 
 exports.extractPRNumber = extractPRNumber
+exports.searchPRByCommit = searchPRByCommit
 exports.fetchPR = fetchPR
 exports.getReleaseType = getReleaseType
 exports.getReleaseNotes = getReleaseNotes
