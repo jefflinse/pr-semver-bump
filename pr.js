@@ -28,8 +28,9 @@ async function searchPRByCommit(commit_sha, config) {
              q 
         });
 
-        if(data.data.total_count <1)
+        if (data.data.total_count <1) {
             throw new Error(`No results found querying for the PR`)
+        }
 
         // We should only find one PR with the commit SHA that was merged so take the first one
         const pr = data.data.items[0]

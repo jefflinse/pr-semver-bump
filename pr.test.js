@@ -14,7 +14,7 @@ test('returns null if no PR number is found in a commit message', () => {
     expect(extractPRNumber('Merge branch master into some/mockBranch')).toEqual(null)
 })
 
-test('searchPRByCommit returns a pr', async () => {
+test('searchPRByCommit returns a PR', async () => {
     let sha = "123456789"
     const config = { octokit: { search: {
          issuesAndPullRequests: async (options) => {
@@ -40,7 +40,7 @@ test('searchPRByCommit Fails to find PR', async () => {
     expect(searchPRByCommit(sha, config)).rejects.toThrow(`Failed to find PR by commit SHA ${sha}: No results found querying for the PR`)
 })
 
-test('searchPRByCommit throws and error on query', async () => {
+test('searchPRByCommit throws an error on query', async () => {
     let sha = "123456789"
     const config = { octokit: { search: {
          issuesAndPullRequests: async () => {

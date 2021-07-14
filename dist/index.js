@@ -641,7 +641,7 @@ async function bumpAndTagNewVersion(config) {
         core.info("Unable to determine PR from commit msg, searching for PR by SHA") 
         // Try to search the commit sha for the PR number
         pr = await searchPRByCommit(process.env.GITHUB_SHA, config)
-        if(pr == null ) {
+        if(pr == null) {
             // Don't want to fail the job if some other commit comes in, but let's warn about it.
             // Might be a good point for configuration in the future.
             core.warning(`head commit doesn't look like a PR merge, skipping version bumping and tagging`)
@@ -1781,8 +1781,9 @@ async function searchPRByCommit(commit_sha, config) {
              q 
         });
 
-        if(data.data.total_count <1)
+        if (data.data.total_count <1) {
             throw new Error(`No results found querying for the PR`)
+        }
 
         // We should only find one PR with the commit SHA that was merged so take the first one
         const pr = data.data.items[0]
