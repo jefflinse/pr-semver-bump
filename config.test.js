@@ -1,10 +1,11 @@
-const process = require('process');
-const { getConfig } = require('./config');
+/* eslint-disable no-undef */
+const process = require('process')
+const { getConfig } = require('./config')
 
 test('establishes config from minimum required inputs', () => {
     process.env['INPUT_MODE'] = 'validate'
     process.env['INPUT_REPO-TOKEN'] = 'mockRepoToken'
-    
+
     const config = getConfig()
     expect(config.mode).toBe('validate')
     expect(config.releaseLabels).toEqual({
@@ -30,7 +31,7 @@ test('establishes config from complete set of inputs', () => {
     process.env['INPUT_RELEASE-NOTES-PREFIX'] = 'release-notes-prefix-text'
     process.env['INPUT_RELEASE-NOTES-SUFFIX'] = 'release-notes-suffix-text'
     process.env['INPUT_WITH-V'] = 'true'
-    
+
     const config = getConfig()
     expect(config.mode).toBe('validate')
     expect(config.releaseLabels).toEqual({
@@ -38,8 +39,8 @@ test('establishes config from complete set of inputs', () => {
         'minor-label-name': 'minor',
         'patch-label-name': 'patch',
     })
-    expect(config.releaseNotesPrefixPattern).toEqual(new RegExp(`release-notes-prefix-text`))
-    expect(config.releaseNotesSuffixPattern).toEqual(new RegExp(`release-notes-suffix-text`))
+    expect(config.releaseNotesPrefixPattern).toEqual(new RegExp('release-notes-prefix-text'))
+    expect(config.releaseNotesSuffixPattern).toEqual(new RegExp('release-notes-suffix-text'))
     expect(config.requireReleaseNotes).toBe(true)
     expect(config.v).toBe('v')
     expect(config.octokit).toBeDefined()
