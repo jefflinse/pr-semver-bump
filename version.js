@@ -25,12 +25,12 @@ async function createRelease(version, releaseNotes, config) {
 async function getCurrentVersion(config) {
     const data = await config.octokit.git.listMatchingRefs({
         ...github.context.repo,
-        namespace: 'tags/'
+        namespace: 'tags/',
     })
 
     const versions = data.data
-        .map(ref => semver.parse(ref.ref.replace(/^refs\/tags\//g, ''), { loose: true }))
-        .filter(version => version !== null)
+        .map((ref) => semver.parse(ref.ref.replace(/^refs\/tags\//g, ''), { loose: true }))
+        .filter((version) => version !== null)
         .sort(semver.rcompare)
 
     if (versions[0] !== undefined) {

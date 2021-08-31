@@ -11,5 +11,11 @@
         "ecmaVersion": 12
     },
     "rules": {
+        "dot-notation": ["error", { "allowPattern": "^[A-Z]+(_[A-Z]+)+$" }],
+        "indent": ["error", 4],
+        "no-plusplus": ["error", { "allowForLoopAfterthoughts": true }],
+        "object-shorthand": [2, "consistent-as-needed"],
+        "quotes": ["warn", "single", { "avoidEscape": true }],
+        "semi": ["error", "never"]
     }
 }

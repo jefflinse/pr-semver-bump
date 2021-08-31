@@ -1,33 +1,33 @@
-const core = require('@actions/core');
-const github = require('@actions/github');
+const core = require('@actions/core')
+const github = require('@actions/github')
 
 // Gets all the required inputs and validates them before proceeding.
 function getConfig() {
-    const mode = core.getInput('mode', { required: true }).toLowerCase();
+    const mode = core.getInput('mode', { required: true }).toLowerCase()
     if (mode !== 'validate' && mode !== 'bump') {
-        throw new Error("mode must be either 'validate' or 'bump'");
+        throw new Error("mode must be either 'validate' or 'bump'")
     }
 
-    const token = core.getInput('repo-token', { required: true });
-    core.setSecret(token);
+    const token = core.getInput('repo-token', { required: true })
+    core.setSecret(token)
 
-    const releaseNotesPrefix = core.getInput('release-notes-prefix');
-    const releaseNotesSuffix = core.getInput('release-notes-suffix');
+    const releaseNotesPrefix = core.getInput('release-notes-prefix')
+    const releaseNotesSuffix = core.getInput('release-notes-suffix')
 
-    let releaseNotesPrefixPattern;
+    let releaseNotesPrefixPattern
     if (releaseNotesPrefix !== undefined && releaseNotesPrefix !== '') {
-        releaseNotesPrefixPattern = new RegExp(releaseNotesPrefix);
+        releaseNotesPrefixPattern = new RegExp(releaseNotesPrefix)
     }
 
-    let releaseNotesSuffixPattern;
+    let releaseNotesSuffixPattern
     if (releaseNotesSuffix !== undefined && releaseNotesSuffix !== '') {
-        releaseNotesSuffixPattern = new RegExp(releaseNotesSuffix);
+        releaseNotesSuffixPattern = new RegExp(releaseNotesSuffix)
     }
 
-    var releaseLabels = {};
-    releaseLabels[core.getInput('major-label') || 'major release'] = 'major';
-    releaseLabels[core.getInput('minor-label') || 'minor release'] = 'minor';
-    releaseLabels[core.getInput('patch-label') || 'patch release'] = 'patch';
+    const releaseLabels = {}
+    releaseLabels[core.getInput('major-label') || 'major release'] = 'major'
+    releaseLabels[core.getInput('minor-label') || 'minor release'] = 'minor'
+    releaseLabels[core.getInput('patch-label') || 'patch release'] = 'patch'
 
     return {
         mode: mode,
@@ -37,7 +37,7 @@ function getConfig() {
         releaseNotesSuffixPattern: releaseNotesSuffixPattern,
         requireReleaseNotes: core.getInput('require-release-notes').toLowerCase() === 'true',
         v: core.getInput('with-v').toLowerCase() === 'true' ? 'v' : '',
-    };
+    }
 }
 
-exports.getConfig = getConfig;
+exports.getConfig = getConfig
