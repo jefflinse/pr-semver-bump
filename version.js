@@ -4,6 +4,7 @@ const semver = require('semver')
 // Tags the specified version and annotates it with the provided release notes.
 async function createRelease(version, releaseNotes, config) {
     const tag = `${config.v}${version}`
+
     const tagCreateResponse = await config.octokit.git.createTag({
         ...github.context.repo,
         tag: tag,
@@ -17,6 +18,13 @@ async function createRelease(version, releaseNotes, config) {
         ref: `refs/tags/${tag}`,
         sha: tagCreateResponse.data.sha,
     })
+
+    // Create a `Release`
+    await config.octokit.repos.createRelease({
+        ...github.context.repo,
+        name: `Release ${tag}`,
+        tag_name: tag
+    });
 
     return tag
 }

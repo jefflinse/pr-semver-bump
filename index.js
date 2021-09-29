@@ -47,6 +47,16 @@ async function validateActivePR(config) {
     }
 
     const currentVersion = await getCurrentVersion(config)
+
+    if (releaseType == 'none') {
+        core.info(`No version bump required, remaining at: ${config.v}${currentVersion}`)
+        return;
+    }
+
+    // Test if a new release number is required so versions
+    // are idempotent
+    // @TODO
+
     const newVersion = semver.inc(currentVersion, releaseType)
 
     core.info(`current version: ${config.v}${currentVersion}`)

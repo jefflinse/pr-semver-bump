@@ -193,6 +193,7 @@ jobs:
           major-label: major release
           minor-label: minor release
           patch-label: patch release
+          skip-label: skip release
           require-release-notes: true
           release-notes-prefix: ''
           release-notes-suffix: ''
@@ -223,6 +224,7 @@ jobs:
           major-label: major release
           minor-label: minor release
           patch-label: patch release
+          skip-label: skip release
           require-release-notes: true
           release-notes-prefix: ''
           release-notes-suffix: ''

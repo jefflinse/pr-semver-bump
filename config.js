@@ -25,9 +25,10 @@ function getConfig() {
     }
 
     const releaseLabels = {}
-    releaseLabels[core.getInput('major-label') || 'major release'] = 'major'
-    releaseLabels[core.getInput('minor-label') || 'minor release'] = 'minor'
-    releaseLabels[core.getInput('patch-label') || 'patch release'] = 'patch'
+    releaseLabels[core.getInput('major-label') || 'major'] = 'major'
+    releaseLabels[core.getInput('minor-label') || 'minor'] = 'minor'
+    releaseLabels[core.getInput('patch-label') || 'patch'] = 'patch'
+    releaseLabels[core.getInput('skip-label')  || 'none']  = 'none'
 
     return {
         mode: mode,
