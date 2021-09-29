@@ -50,6 +50,9 @@ test('can create a new release', async () => {
                 createTag: async () => ({ data: { sha: 'mockSha' } }),
                 createRef: async () => ({}),
             },
+            repos: {
+                createRef: async () => ({}),
+            }
         },
     }
 
