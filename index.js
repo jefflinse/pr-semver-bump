@@ -96,7 +96,7 @@ async function bumpAndTagNewVersion(config) {
     const currentVersion = await getCurrentVersion(config)
 
     const newVersion = semver.inc(currentVersion, releaseType)
-    const newTag = await createRelease(newVersion, releaseNotes, config)
+    const newTag = await createRelease(newVersion, releaseNotes, config, core)
     core.info(`Created release tag ${newTag} with the following release notes:\n${releaseNotes}\n`)
 
     core.setOutput('old-version', `${config.v}${currentVersion}`)
