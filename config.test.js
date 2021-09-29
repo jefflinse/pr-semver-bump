@@ -9,9 +9,10 @@ test('establishes config from minimum required inputs', () => {
     const config = getConfig()
     expect(config.mode).toBe('validate')
     expect(config.releaseLabels).toEqual({
-        'major release': 'major',
-        'minor release': 'minor',
-        'patch release': 'patch',
+        'major': 'major',
+        'minor': 'minor',
+        'patch': 'patch',
+        'none' : 'none',
     })
     expect(config.releaseNotesPrefixPattern).toBeUndefined()
     expect(config.releaseNotesSuffixPattern).toBeUndefined()
@@ -27,6 +28,7 @@ test('establishes config from complete set of inputs', () => {
     process.env['INPUT_MAJOR-LABEL'] = 'major-label-name'
     process.env['INPUT_MINOR-LABEL'] = 'minor-label-name'
     process.env['INPUT_PATCH-LABEL'] = 'patch-label-name'
+    process.env['INPUT_SKIP-LABEL'] = 'skip-label-name'
     process.env['INPUT_REQUIRE-RELEASE-NOTES'] = 'true'
     process.env['INPUT_RELEASE-NOTES-PREFIX'] = 'release-notes-prefix-text'
     process.env['INPUT_RELEASE-NOTES-SUFFIX'] = 'release-notes-suffix-text'
@@ -38,6 +40,7 @@ test('establishes config from complete set of inputs', () => {
         'major-label-name': 'major',
         'minor-label-name': 'minor',
         'patch-label-name': 'patch',
+        'skip-label-name': 'none',
     })
     expect(config.releaseNotesPrefixPattern).toEqual(new RegExp('release-notes-prefix-text'))
     expect(config.releaseNotesSuffixPattern).toEqual(new RegExp('release-notes-suffix-text'))
