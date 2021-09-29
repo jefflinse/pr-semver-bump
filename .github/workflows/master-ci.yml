@@ -25,5 +25,8 @@ jobs:
           mode: bump
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           require-release-notes: true
-          release-notes-prefix: '### RELEASE NOTES'
+          major-label: "SemVer:major"
+          minor-label: "SemVer:minor"
+          patch-label: "SemVer:patch"
+          skip-label: "SemVer:none"
           with-v: true

@@ -51,7 +51,7 @@ test('can create a new release', async () => {
                 createRef: async () => ({}),
             },
             repos: {
-                createRef: async () => ({}),
+                createRelease: async () => ({}),
             }
         },
     }
