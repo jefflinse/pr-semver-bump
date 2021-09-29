@@ -20,6 +20,7 @@ async function createRelease(version, releaseNotes, config) {
     })
 
     // Create a `Release`
+    // Test action
     await config.octokit.repos.createRelease({
         ...github.context.repo,
         name: `Release ${tag}`,
