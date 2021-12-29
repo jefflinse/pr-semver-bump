@@ -36,6 +36,7 @@ function getConfig() {
         releaseNotesPrefixPattern: releaseNotesPrefixPattern,
         releaseNotesSuffixPattern: releaseNotesSuffixPattern,
         requireReleaseNotes: core.getInput('require-release-notes').toLowerCase() === 'true',
+        baseBranch: core.getInput('base-branch').toLowerCase() === 'true',
         v: core.getInput('with-v').toLowerCase() === 'true' ? 'v' : '',
     }
 }

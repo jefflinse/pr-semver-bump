@@ -87,6 +87,7 @@ Inputs can be used to customize the behavior of the action in both modes.
 | `release-notes-prefix` | If defined, constrains release notes to any text appearing after a line matching this pattern in the pull request body. By default, release notes start at the beginning of the pull request description. |
 | `release-notes-suffix` | If defined, constrains release notes to any text appearing before a line matching this pattern in the pull request body. By default, release notes end at the end of the pull request description. |
 | `with-v` | If true, newly tagged versions will be prefixed with 'v', e.g. 'v1.2.3'. |
+| `base-branch` | Whether or not to only consider version tags on the base branch in the pull request. |
 
 ### Using Custom Label Names
 
@@ -207,6 +208,7 @@ jobs:
           release-notes-prefix: ''
           release-notes-suffix: ''
           with-v: false
+          base-branch: false
 ```
 
 Create a CI workflow to run whenever a pull request is merged. All optional inputs are explicitly set to their default values in the configuration below.
