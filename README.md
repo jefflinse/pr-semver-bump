@@ -168,6 +168,16 @@ The following outputs are available (in both modes):
 | `version` | The version after bumping. |
 | `release-notes` | Release notes found in the pull request description. |
 
+## Permissions
+
+The following workflow permissions are required by this action. Depending on your situation these may need to be set explicitly. See [GitHub's documentation](https://docs.github.com/en/actions/security-guides/automatic-token-authentication#modifying-the-permissions-for-the-github_token) for more details.
+
+|Scope|Permission|
+|-|-|
+|`contents`|`write`|
+|`issues`|`read`|
+|`pull-requests`|`read`|
+
 ## Full Example
 
 Create a validation workflow to run whenever a pull request is created or updated. All optional inputs are explicitly set to their default values in the configuration below.
