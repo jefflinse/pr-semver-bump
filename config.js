@@ -1,6 +1,21 @@
 const core = require('@actions/core')
 const github = require('@actions/github')
 
+// Gets and validates the 'initial-version' input
+function getInitialVersion() {
+    const initialVersion = core.getInput('initial-version')
+    if (initialVersion === undefined || initialVersion === '') {
+        return undefined
+    }
+
+    const match = initialVersion.match(/^v?(\d+\.\d+\.\d+)$/)
+    if (match) {
+        return match[1]
+    }
+
+    throw new Error('initial-version must be in one of the following forms: X.Y.Z or vX.Y.Z')
+}
+
 // Gets all the required inputs and validates them before proceeding.
 function getConfig() {
     const mode = core.getInput('mode', { required: true }).toLowerCase()
@@ -30,6 +45,7 @@ function getConfig() {
     releaseLabels[core.getInput('patch-label') || 'patch release'] = 'patch'
 
     return {
+        initialVersion: getInitialVersion(),
         mode: mode,
         octokit: github.getOctokit(token),
         releaseLabels: releaseLabels,

@@ -453,6 +453,21 @@ module.exports = SemVer
 const core = __webpack_require__(470)
 const github = __webpack_require__(469)
 
+// Gets and validates the 'initial-version' input
+function getInitialVersion() {
+    const initialVersion = core.getInput('initial-version')
+    if (initialVersion === undefined || initialVersion === '') {
+        return undefined
+    }
+
+    const match = initialVersion.match(/^v?(\d+\.\d+\.\d+)$/)
+    if (match) {
+        return match[1]
+    }
+
+    throw new Error('initial-version must be in one of the following forms: X.Y.Z or vX.Y.Z')
+}
+
 // Gets all the required inputs and validates them before proceeding.
 function getConfig() {
     const mode = core.getInput('mode', { required: true }).toLowerCase()
@@ -482,6 +497,7 @@ function getConfig() {
     releaseLabels[core.getInput('patch-label') || 'patch release'] = 'patch'
 
     return {
+        initialVersion: getInitialVersion(),
         mode: mode,
         octokit: github.getOctokit(token),
         releaseLabels: releaseLabels,
@@ -620,6 +636,13 @@ function isActivePR() {
     return github.context.eventName === 'pull_request' && github.context.payload.pull_request !== undefined
 }
 
+// TODO: fulfill this contract
+// Returns true if an initial version is configured and the current commit is
+// the repository's initial commit.
+function isInitialVersion(config) {
+    return config.initialVersion !== undefined
+}
+
 // Returns true if the current context looks like a merge commit.
 function isMergeCommit() {
     return github.context.eventName === 'push' && github.context.payload.head_commit !== undefined
@@ -664,36 +687,48 @@ async function validateActivePR(config) {
 
 // Increments the version according to the release type and tags a new version with release notes.
 async function bumpAndTagNewVersion(config) {
-    if (!isMergeCommit()) {
+    let currentVersion
+    let newVersion
+    let releaseNotes
+    let releaseType
+
+    if (isMergeCommit()) {
+        const num = extractPRNumber(github.context.payload.head_commit.message)
+        let pr
+        if (num == null) {
+            core.info('Unable to determine PR from commit msg, searching for PR by SHA')
+            // Try to search the commit sha for the PR number
+            pr = await searchPRByCommit(process.env.GITHUB_SHA, config)
+            if (pr == null) {
+                // Don't want to fail the job if some other commit comes in,
+                // but let's warn about it. Might be a good point for configuration
+                // in the future.
+                core.warning("head commit doesn't look like a PR merge, skipping version bumping and tagging")
+                return
+            }
+        } else {
+            pr = await fetchPR(num, config)
+        }
+        core.info(`Processing version bump for PR request #${pr.number}`)
+        releaseType = getReleaseType(pr, config)
+        releaseNotes = getReleaseNotes(pr, config)
+        currentVersion = await getCurrentVersion(config)
+        newVersion = semver.inc(currentVersion, releaseType)
+    } else if (isInitialVersion(config)) {
+        releaseNotes = 'Initial commit'
+        newVersion = config.initialVersion
+    } else {
         core.warning("in 'bump' mode, but this doesn't look like a PR merge commit event (is your workflow misconfigured?)")
         return
     }
 
-    const num = extractPRNumber(github.context.payload.head_commit.message)
-    let pr
-    if (num == null) {
-        core.info('Unable to determine PR from commit msg, searching for PR by SHA')
-        // Try to search the commit sha for the PR number
-        pr = await searchPRByCommit(process.env.GITHUB_SHA, config)
-        if (pr == null) {
-            // Don't want to fail the job if some other commit comes in, but let's warn about it.
-            // Might be a good point for configuration in the future.
-            core.warning("head commit doesn't look like a PR merge, skipping version bumping and tagging")
-            return
-        }
-    } else {
-        pr = await fetchPR(num, config)
-    }
-    core.info(`Processing version bump for PR request #${pr.number}`)
-    const releaseType = getReleaseType(pr, config)
-    const releaseNotes = getReleaseNotes(pr, config)
-    const currentVersion = await getCurrentVersion(config)
-
-    const newVersion = semver.inc(currentVersion, releaseType)
     const newTag = await createRelease(newVersion, releaseNotes, config)
     core.info(`Created release tag ${newTag} with the following release notes:\n${releaseNotes}\n`)
 
-    core.setOutput('old-version', `${config.v}${currentVersion}`)
+    if (currentVersion !== undefined) {
+        core.setOutput('old-version', `${config.v}${currentVersion}`)
+    }
+
     core.setOutput('version', newTag)
     core.setOutput('release-notes', releaseNotes)
 }

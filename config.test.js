@@ -22,6 +22,7 @@ test('establishes config from minimum required inputs', () => {
 })
 
 test('establishes config from complete set of inputs', () => {
+    process.env['INPUT_INITIAL-VERSION'] = 'v1.2.3'
     process.env['INPUT_MODE'] = 'validate'
     process.env['INPUT_REPO-TOKEN'] = 'mockRepoToken'
     process.env['INPUT_MAJOR-LABEL'] = 'major-label-name'
@@ -33,6 +34,7 @@ test('establishes config from complete set of inputs', () => {
     process.env['INPUT_WITH-V'] = 'true'
 
     const config = getConfig()
+    expect(config.initialVersion).toBe('1.2.3')
     expect(config.mode).toBe('validate')
     expect(config.releaseLabels).toEqual({
         'major-label-name': 'major',
@@ -51,6 +53,12 @@ test('throws when a required input is missing', () => {
     process.env['INPUT_MODE'] = ''
     process.env['INPUT_REPO-TOKEN'] = 'mockRepoToken'
     expect(getConfig).toThrow('Input required and not supplied: mode')
+})
+
+test('errors out when an invalid initial-version is specified', () => {
+    process.env['INPUT_INITIAL-VERSION'] = 'invalid'
+    process.env['INPUT_MODE'] = 'bump'
+    expect(getConfig).toThrow('initial-version must be in one of the following forms: X.Y.Z or vX.Y.Z')
 })
 
 test('errors out when an invalid mode is specified', () => {
