@@ -23,12 +23,12 @@ async function isInitialVersion(config) {
         return false
     }
 
-    const commit = await octokit.git.getCommit({
+    const commit = await config.octokit.git.getCommit({
         ...github.context.repo,
         commit_sha: github.context.sha,
     })
 
-    return commit.data.parents.length == 0
+    return commit.data.parents.length === 0
 }
 
 // Returns true if the current context looks like a merge commit.

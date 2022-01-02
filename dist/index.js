@@ -636,11 +636,19 @@ function isActivePR() {
     return github.context.eventName === 'pull_request' && github.context.payload.pull_request !== undefined
 }
 
-// TODO: fulfill this contract
-// Returns true if an initial version is configured and the current commit is
-// the repository's initial commit.
-function isInitialVersion(config) {
-    return config.initialVersion !== undefined
+// Returns true if an initial version is configured
+// and the current commit is the repository's initial commit.
+async function isInitialVersion(config) {
+    if (config.initialVersion === undefined) {
+        return false
+    }
+
+    const commit = await config.octokit.git.getCommit({
+        ...github.context.repo,
+        commit_sha: github.context.sha,
+    })
+
+    return commit.data.parents.length === 0
 }
 
 // Returns true if the current context looks like a merge commit.
