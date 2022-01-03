@@ -1,9 +1,37 @@
+const core = require('@actions/core')
 const github = require('@actions/github')
 const semver = require('semver')
 
+const httpNotFound = 404
+
+// Returns true if the current commit already has the given tag.
+async function isAlreadyTagged(tag, config) {
+    try {
+        await config.octokit.git.getRef({
+            ...github.context.repo,
+            ref: `tags/${tag}`,
+        })
+        return true
+    } catch (error) {
+        if (error.status === httpNotFound) {
+            return false
+        }
+
+        throw error
+    }
+}
+
 // Tags the specified version and annotates it with the provided release notes.
-async function createRelease(version, releaseNotes, config) {
+// If idempotent is true and the commit already contains the tag, the commit
+// is untouched.
+async function createRelease(version, releaseNotes, config, idempotent) {
     const tag = `${config.v}${version}`
+
+    if (idempotent && await isAlreadyTagged(tag, config)) {
+        core.info(`Commit is already tagged with ${tag} -- skipping`)
+        return tag
+    }
+
     const tagCreateResponse = await config.octokit.git.createTag({
         ...github.context.repo,
         tag: tag,
