@@ -76,6 +76,7 @@ async function validateActivePR(config) {
 // Increments the version according to the release type and tags a new version with release notes.
 async function bumpAndTagNewVersion(config) {
     let currentVersion
+    let idempotent = false
     let newVersion
     let releaseNotes
     let releaseType
@@ -103,6 +104,7 @@ async function bumpAndTagNewVersion(config) {
         currentVersion = await getCurrentVersion(config)
         newVersion = semver.inc(currentVersion, releaseType)
     } else if (isInitialVersion(config)) {
+        idempotent = true
         releaseNotes = 'Initial commit'
         newVersion = config.initialVersion
     } else {
@@ -110,7 +112,7 @@ async function bumpAndTagNewVersion(config) {
         return
     }
 
-    const newTag = await createRelease(newVersion, releaseNotes, config)
+    const newTag = await createRelease(newVersion, releaseNotes, config, idempotent)
     core.info(`Created release tag ${newTag} with the following release notes:\n${releaseNotes}\n`)
 
     if (currentVersion !== undefined) {

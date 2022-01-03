@@ -696,6 +696,7 @@ async function validateActivePR(config) {
 // Increments the version according to the release type and tags a new version with release notes.
 async function bumpAndTagNewVersion(config) {
     let currentVersion
+    let idempotent = false
     let newVersion
     let releaseNotes
     let releaseType
@@ -723,6 +724,7 @@ async function bumpAndTagNewVersion(config) {
         currentVersion = await getCurrentVersion(config)
         newVersion = semver.inc(currentVersion, releaseType)
     } else if (isInitialVersion(config)) {
+        idempotent = true
         releaseNotes = 'Initial commit'
         newVersion = config.initialVersion
     } else {
@@ -730,7 +732,7 @@ async function bumpAndTagNewVersion(config) {
         return
     }
 
-    const newTag = await createRelease(newVersion, releaseNotes, config)
+    const newTag = await createRelease(newVersion, releaseNotes, config, idempotent)
     core.info(`Created release tag ${newTag} with the following release notes:\n${releaseNotes}\n`)
 
     if (currentVersion !== undefined) {
@@ -9166,12 +9168,40 @@ module.exports = inc
 /***/ 935:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
+const core = __webpack_require__(470)
 const github = __webpack_require__(469)
 const semver = __webpack_require__(876)
 
+const httpNotFound = 404
+
+// Returns true if the current commit already has the given tag.
+async function isAlreadyTagged(tag, config) {
+    try {
+        await config.octokit.git.getRef({
+            ...github.context.repo,
+            ref: `tags/${tag}`,
+        })
+        return true
+    } catch (error) {
+        if (error.status === httpNotFound) {
+            return false
+        }
+
+        throw error
+    }
+}
+
 // Tags the specified version and annotates it with the provided release notes.
-async function createRelease(version, releaseNotes, config) {
+// If idempotent is true and the commit already contains the tag, the commit
+// is untouched.
+async function createRelease(version, releaseNotes, config, idempotent) {
     const tag = `${config.v}${version}`
+
+    if (idempotent && await isAlreadyTagged(tag, config)) {
+        core.info(`Commit is already tagged with ${tag} -- skipping`)
+        return tag
+    }
+
     const tagCreateResponse = await config.octokit.git.createTag({
         ...github.context.repo,
         tag: tag,

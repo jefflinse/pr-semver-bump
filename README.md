@@ -78,7 +78,7 @@ Inputs can be used to customize the behavior of the action in both modes.
 
 | Name | Description |
 | ---- | ----------- |
-| `initial-version` | If defined when run against the first commit of a new repository (e.g. a templatized repository), tags that commit with this version number. |
+| `initial-version` | If defined when run against the first commit of a new repository (e.g. a templatized repository), idempotently tags that commit with this version number. |
 | `mode` | ***Required.*** `validate` or `bump`. |
 | `repo-token` | ***Required.*** The `GITHUB_TOKEN` for the repo. Needed for fetching pull request data and tagging new releases. |
 | `major-label` | The name of the label that indicates the pull request should result in a **major** version bump. _Default: 'major release'_. |
