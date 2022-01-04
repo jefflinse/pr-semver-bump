@@ -239,6 +239,7 @@ jobs:
           release-notes-prefix: ''
           release-notes-suffix: ''
           with-v: false
+          base-branch: false
 ```
 
 ## Contributing
