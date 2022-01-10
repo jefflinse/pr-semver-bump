@@ -138,6 +138,7 @@ const baseBranchCases = [
 
 test.each(baseBranchCases)('returns the latest version on a branch', async (input, expected) => {
     process.env['GITHUB_REPOSITORY'] = 'mockUser/mockRepo'
+    process.env['GITHUB_REF'] = 'refs/heads/mockBranch'
 
     async function* asyncGenerator(fn) {
         yield fn()
