@@ -1,5 +1,5 @@
 /* eslint-disable no-undef */
-const { getCurrentVersion, createRelease, getLatestVersionInCommits } = require('./version')
+const { getCurrentVersion, createRelease } = require('./version')
 
 test('can get the current version when verion tags are available', async () => {
     process.env['GITHUB_REPOSITORY'] = 'mockUser/mockRepo'
@@ -42,87 +42,137 @@ test('returns a default version when verion tags are unavailable', async () => {
     expect(getCurrentVersion(config)).resolves.toBe('0.0.0')
 })
 
-test('returns the latest version on a branch', async () => {
+const baseBranchCases = [
+    [
+        {
+            matchingRefs: [
+                {
+                    ref: 'refs/tags/v1.2.3',
+                    object: {
+                        type: 'commit',
+                        sha: 'mockCommit1',
+                    },
+                },
+                {
+                    ref: 'refs/tags/myFeature',
+                },
+                {
+                    ref: 'refs/tags/v1.4.0',
+                    object: {
+                        type: 'commit',
+                        sha: 'mockCommit2',
+                    },
+                },
+                {
+                    ref: 'refs/tags/not-a-version',
+                },
+                {
+                    ref: 'refs/tags/v1.4.1',
+                    object: {
+                        type: 'tag',
+                    },
+                },
+                {
+                    ref: 'refs/tags/very-good-tag',
+                },
+            ],
+            getTagSha: 'mockCommit3',
+            commitsOnBranch: [
+                { sha: 'mockCommit1' },
+                { sha: 'mockCommit2' },
+            ],
+        },
+        '1.4.0',
+    ],
+    [
+        {
+            matchingRefs: [
+                {
+                    ref: 'refs/tags/v1.2.3',
+                    object: {
+                        type: 'commit',
+                        sha: 'mockCommit1',
+                    },
+                },
+                {
+                    ref: 'refs/tags/v1.4.0',
+                    object: {
+                        type: 'tag',
+                    },
+                },
+                {
+                    ref: 'refs/tags/v1.4.1',
+                    object: {
+                        type: 'commit',
+                        sha: 'mockCommit3',
+                    },
+                },
+            ],
+            getTagSha: 'mockCommit2',
+            commitsOnBranch: [
+                { sha: 'mockCommit1' },
+                { sha: 'mockCommit2' },
+            ],
+        },
+        '1.4.0',
+    ],
+    [
+        {
+            matchingRefs: [
+                {
+                    ref: 'refs/tags/v1.2.3',
+                    object: {
+                        type: 'commit',
+                        sha: 'mockCommit3',
+                    },
+                },
+            ],
+            commitsOnBranch: [
+                { sha: 'mockCommit1' },
+                { sha: 'mockCommit2' },
+            ],
+        },
+        '0.0.0',
+    ],
+]
+
+test.each(baseBranchCases)('returns the latest version on a branch', async (input, expected) => {
+    process.env['GITHUB_REPOSITORY'] = 'mockUser/mockRepo'
+
+    async function* asyncGenerator(fn) {
+        yield fn()
+    }
     const config = {
+        baseBranch: true,
         octokit: {
+            git: {
+                listMatchingRefs: async () => ({
+                    data: input.matchingRefs,
+                }),
+            },
+            paginate: {
+                iterator: asyncGenerator,
+            },
             rest: {
                 git: {
                     getTag: async () => ({
                         data: {
                             object: {
-                                sha: 'mockCommit3',
+                                sha: input.getTagSha,
                             },
                         },
+                    }),
+                },
+                repos: {
+                    listCommits: async () => ({
+                        data: input.commitsOnBranch,
                     }),
                 },
             },
         },
     }
-    const commits = new Set([
-        'mockCommit1',
-        'mockCommit2',
-    ])
-    const sortedVersions = [
-        '1.4.1',
-        '1.4.0',
-        '1.2.3',
-    ]
-    const objectsByVersion = {
-        '1.2.3': {
-            type: 'commit',
-            sha: 'mockCommit1',
-        },
-        '1.4.0': {
-            type: 'commit',
-            sha: 'mockCommit2',
-        },
-        '1.4.1': {
-            type: 'tag',
-        },
-    }
 
-    return expect(getLatestVersionInCommits(commits, sortedVersions, objectsByVersion, config)).resolves.toBe('1.4.0')
-})
-
-test('returns a default version when no tags on the branch', async () => {
-    const config = {
-        octokit: {
-            rest: {
-                git: {
-                    getTag: async () => ({
-                        data: {
-                            object: {
-                                sha: 'mockCommit5',
-                            },
-                        },
-                    }),
-                },
-            },
-        },
-    }
-    const commits = new Set([
-        'mockCommit1',
-        'mockCommit2',
-    ])
-    const sortedVersions = [
-        '1.4.1',
-        '1.4.0',
-        '1.2.3',
-    ]
-    const objectsByVersion = {
-        '1.2.3': {
-            type: 'commit',
-            sha: 'mockCommit3',
-        },
-        '1.4.0': {
-            type: 'commit',
-            sha: 'mockCommit4',
-        },
-        '1.4.1': {
-            type: 'tag',
-        },
-    }
-    return expect(getLatestVersionInCommits(commits, sortedVersions, objectsByVersion, config)).resolves.toBe('0.0.0')
+    return expect(getCurrentVersion(config)).resolves.toBe(expected)
 })
 
 test('can create a new release', async () => {

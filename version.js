@@ -99,4 +99,3 @@ async function getCurrentVersion(config) {
 
 exports.createRelease = createRelease
 exports.getCurrentVersion = getCurrentVersion
-exports.getLatestVersionInCommits = getLatestVersionInCommits
