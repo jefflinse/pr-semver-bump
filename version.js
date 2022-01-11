@@ -86,7 +86,7 @@ async function getCurrentVersion(config) {
     versions.sort(semver.rcompare)
 
     if (config.baseBranch) {
-        const branch = process.env.GITHUB_HEAD_REF || (process.env.GITHUB_REF && process.env.GITHUB_REF.split('/')[2])
+        const branch = process.env.GITHUB_BASE_REF || (process.env.GITHUB_REF && process.env.GITHUB_REF.split('/')[2])
         const commits = await getCommitsOnBranch(branch, config)
         return getLatestVersionInCommits(commits, versions, objectsByVersion, config)
     }
