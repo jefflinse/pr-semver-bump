@@ -708,6 +708,7 @@ async function run() {
             await bumpAndTagNewVersion(config)
         }
     } catch (e) {
+        core.info(e.stack)
         core.setFailed(`unexpected error: ${e.message}`)
     }
 }
@@ -9124,6 +9125,7 @@ module.exports = inc
 /***/ 935:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
+const core = __webpack_require__(470)
 const github = __webpack_require__(469)
 const semver = __webpack_require__(876)
 
@@ -9212,7 +9214,8 @@ async function getCurrentVersion(config) {
     versions.sort(semver.rcompare)
 
     if (config.baseBranch) {
-        const branch = process.env.GITHUB_BASE_REF || (process.env.GITHUB_REF && process.env.GITHUB_REF.split('/')[2])
+        const branch = process.env.GITHUB_BASE_REF || (process.env.GITHUB_REF && process.env.GITHUB_REF.replace('refs/heads/', ''))
+        core.info(`Only considering tags on branch ${branch}`)
         const commits = await getCommitsOnBranch(branch, config)
         return getLatestVersionInCommits(commits, versions, objectsByVersion, config)
     }

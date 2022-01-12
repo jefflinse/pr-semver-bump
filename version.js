@@ -1,3 +1,4 @@
+const core = require('@actions/core')
 const github = require('@actions/github')
 const semver = require('semver')
 
@@ -86,7 +87,8 @@ async function getCurrentVersion(config) {
     versions.sort(semver.rcompare)
 
     if (config.baseBranch) {
-        const branch = process.env.GITHUB_BASE_REF || (process.env.GITHUB_REF && process.env.GITHUB_REF.split('/')[2])
+        const branch = process.env.GITHUB_BASE_REF || (process.env.GITHUB_REF && process.env.GITHUB_REF.replace('refs/heads/', ''))
+        core.info(`Only considering tags on branch ${branch}`)
         const commits = await getCommitsOnBranch(branch, config)
         return getLatestVersionInCommits(commits, versions, objectsByVersion, config)
     }
