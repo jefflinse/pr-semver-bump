@@ -21,6 +21,16 @@ function isMergeCommit() {
     return github.context.eventName === 'push' && github.context.payload.head_commit !== undefined
 }
 
+function setOutputs(currentVersion, newVersion, releaseNotes) {
+    core.info(`current version: ${currentVersion}`)
+    core.info(`next version: ${newVersion}`)
+    core.info(`release notes:\n${releaseNotes}`)
+
+    core.setOutput('old-version', currentVersion)
+    core.setOutput('version', newVersion)
+    core.setOutput('release-notes', releaseNotes)
+}
+
 // Ensures that the currently active PR contains the required release metadata.
 async function validateActivePR(config) {
     if (!isActivePR()) {
@@ -48,14 +58,7 @@ async function validateActivePR(config) {
 
     const currentVersion = await getCurrentVersion(config)
     const newVersion = semver.inc(currentVersion, releaseType)
-
-    core.info(`current version: ${config.v}${currentVersion}`)
-    core.info(`next version: ${config.v}${newVersion}`)
-    core.info(`release notes:\n${releaseNotes}`)
-
-    core.setOutput('old-version', `${config.v}${currentVersion}`)
-    core.setOutput('version', `${config.v}${newVersion}`)
-    core.setOutput('release-notes', releaseNotes)
+    setOutputs(config.v + currentVersion, config.v + newVersion, releaseNotes)
 }
 
 // Increments the version according to the release type and tags a new version with release notes.
@@ -83,15 +86,18 @@ async function bumpAndTagNewVersion(config) {
     core.info(`Processing version bump for PR request #${pr.number}`)
     const releaseType = getReleaseType(pr, config)
     const releaseNotes = getReleaseNotes(pr, config)
-    const currentVersion = await getCurrentVersion(config)
 
+    const currentVersion = await getCurrentVersion(config)
     const newVersion = semver.inc(currentVersion, releaseType)
+    setOutputs(config.v + currentVersion, config.v + newVersion, releaseNotes)
+
+    if (config.dryRun) {
+        core.info("Skipping tagging since input 'dry-run' is true")
+        return
+    }
+
     const newTag = await createRelease(newVersion, releaseNotes, config)
     core.info(`Created release tag ${newTag} with the following release notes:\n${releaseNotes}\n`)
-
-    core.setOutput('old-version', `${config.v}${currentVersion}`)
-    core.setOutput('version', newTag)
-    core.setOutput('release-notes', releaseNotes)
 }
 
 async function run() {

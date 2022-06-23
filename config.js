@@ -1,5 +1,6 @@
 const core = require('@actions/core')
 const github = require('@actions/github')
+const semver = require('semver')
 
 // Gets all the required inputs and validates them before proceeding.
 function getConfig() {
@@ -29,14 +30,22 @@ function getConfig() {
     releaseLabels[core.getInput('minor-label') || 'minor release'] = 'minor'
     releaseLabels[core.getInput('patch-label') || 'patch release'] = 'patch'
 
+    const versionInput = core.getInput('version')
+    const version = semver.clean(versionInput)
+    if (versionInput && !version) {
+        throw new Error(`invalid input version: '${versionInput}'`)
+    }
+
     return {
         mode: mode,
         octokit: github.getOctokit(token),
         releaseLabels: releaseLabels,
         releaseNotesPrefixPattern: releaseNotesPrefixPattern,
         releaseNotesSuffixPattern: releaseNotesSuffixPattern,
-        requireReleaseNotes: core.getInput('require-release-notes').toLowerCase() === 'true',
-        v: core.getInput('with-v').toLowerCase() === 'true' ? 'v' : '',
+        requireReleaseNotes: core.getBooleanInput('require-release-notes'),
+        v: core.getBooleanInput('with-v') ? 'v' : '',
+        dryRun: core.getBooleanInput('dry-run'),
+        version: version,
     }
 }
 

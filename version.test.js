@@ -1,6 +1,13 @@
 /* eslint-disable no-undef */
 const { getCurrentVersion, createRelease } = require('./version')
 
+test('returns version input when specified', async () => {
+    process.env['GITHUB_REPOSITORY'] = 'mockUser/mockRepo'
+    const config = { version: '1.4.2' }
+
+    expect(getCurrentVersion(config)).resolves.toBe('1.4.2')
+})
+
 test('can get the current version when verion tags are available', async () => {
     process.env['GITHUB_REPOSITORY'] = 'mockUser/mockRepo'
     const config = {
