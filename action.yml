@@ -28,8 +28,8 @@ inputs:
     required: false
   repo-token:
     description: The repository's GITHUB_TOKEN, used to obtain PR data
-    required: false
-    default: ${{ secrets.GITHUB_TOKEN }}
+    required: true
+    default: ${{ github.token }}
   with-v:
     description: Set to 'true' to prefix versions with 'v'
     required: false
