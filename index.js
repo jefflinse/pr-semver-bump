@@ -58,7 +58,7 @@ async function validateActivePR(config) {
 
     const currentVersion = await getCurrentVersion(config)
     const newVersion = semver.inc(currentVersion, releaseType)
-    setOutputs(config.v+currentVersion, config.v+newVersion, releaseNotes)
+    setOutputs(config.v + currentVersion, config.v + newVersion, releaseNotes)
 }
 
 // Increments the version according to the release type and tags a new version with release notes.
@@ -89,7 +89,7 @@ async function bumpAndTagNewVersion(config) {
 
     const currentVersion = await getCurrentVersion(config)
     const newVersion = semver.inc(currentVersion, releaseType)
-    setOutputs(config.v+currentVersion, config.v+newVersion, releaseNotes)
+    setOutputs(config.v + currentVersion, config.v + newVersion, releaseNotes)
 
     if (config.dryRun) {
         core.info("Skipping tagging since input 'dry-run' is true")

@@ -3,6 +3,11 @@ const process = require('process')
 const { getConfig } = require('./config')
 
 test('establishes config from minimum required inputs', () => {
+    // Defaults from action.yml
+    process.env['INPUT_REQUIRE-RELEASE-NOTES'] = 'false'
+    process.env['INPUT_WITH-V'] = 'false'
+    process.env['INPUT_DRY-RUN'] = 'false'
+
     process.env['INPUT_MODE'] = 'validate'
     process.env['INPUT_REPO-TOKEN'] = 'mockRepoToken'
 
