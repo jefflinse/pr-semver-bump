@@ -79,7 +79,7 @@ Inputs can be used to customize the behavior of the action in both modes.
 | Name | Description |
 | ---- | ----------- |
 | `mode` | ***Required.*** `validate` or `bump`. |
-| `repo-token` | ***Required.*** The `GITHUB_TOKEN` for the repo. Needed for fetching pull request data and tagging new releases. |
+| `repo-token` | The `GITHUB_TOKEN` for the repo. Needed for fetching pull request data and tagging new releases. |
 | `major-label` | The name of the label that indicates the pull request should result in a **major** version bump. _Default: 'major release'_. |
 | `minor-label` | The name of the label that indicates the pull request should result in a **minor** version bump. _Default: 'minor release'_. |
 | `patch-label` | The name of the label that indicates the pull request should result in a **patch** version bump. _Default: 'patch release'_. |
@@ -87,6 +87,8 @@ Inputs can be used to customize the behavior of the action in both modes.
 | `release-notes-prefix` | If defined, constrains release notes to any text appearing after a line matching this pattern in the pull request body. By default, release notes start at the beginning of the pull request description. |
 | `release-notes-suffix` | If defined, constrains release notes to any text appearing before a line matching this pattern in the pull request body. By default, release notes end at the end of the pull request description. |
 | `with-v` | If true, newly tagged versions will be prefixed with 'v', e.g. 'v1.2.3'. |
+| `dry-run` | If true, no tag will be created in `bump` mode (i.e. only outputs will be set). |
+| `version` | If defined, this will be used as the current version instead of the latest tag. |
 
 ### Using Custom Label Names
 

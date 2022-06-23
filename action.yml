@@ -19,22 +19,28 @@ inputs:
   require-release-notes:
     description: Whether or not release notes are required
     required: false
-    default: 'false'
+    default: false
   release-notes-prefix:
     description: Text that designates the start of the release notes
     required: false
-    default: ''
   release-notes-suffix:
     description: Text that designates the end of the release notes
     required: false
-    default: ''
   repo-token:
     description: The repository's GITHUB_TOKEN, used to obtain PR data
-    required: true
+    required: false
+    default: ${{ secrets.GITHUB_TOKEN }}
   with-v:
     description: Set to 'true' to prefix versions with 'v'
     required: false
-    default: 'false'
+    default: false
+  dry-run:
+    description: Determine next version but do not apply tag
+    required: false
+    default: false
+  version:
+    description: Use this as current version instead of latest tag
+    required: false
 outputs:
   old-version:
     description: The version tag prior to bumping
