@@ -1,5 +1,5 @@
-name: 'PR Semver Bump'
-description: 'Bump and tag a new version using pull request metadata'
+name: PR Semver Bump
+description: Bump and tag a new version using pull request metadata
 inputs:
   mode:
     description: The mode in which to run this action ('validate' or 'bump')
@@ -7,15 +7,15 @@ inputs:
   major-label:
     description: The name of the PR label that specifies a major release
     required: false
-    default: 'major release'
+    default: major release
   minor-label:
     description: The name of the PR label that specifies a minor release
     required: false
-    default: 'minor release'
+    default: minor release
   patch-label:
     description: The name of the PR label that specifies a patch release
     required: false
-    default: 'patch release'
+    default: patch release
   require-release-notes:
     description: Whether or not release notes are required
     required: false
@@ -35,7 +35,9 @@ inputs:
     required: false
     default: false
   dry-run:
-    description: Determine next version but do not apply tag
+    description: |
+      In bump mode, determine next version but do not apply tag.
+      In validate mode, check labels but do not calculate version.
     required: false
     default: false
   version:
@@ -48,6 +50,8 @@ outputs:
     description: The version tag after bumping
   release-notes:
     description: The version's release notes
+  release-type:
+    description: The release type (one of 'major', 'minor', or 'patch')
 runs:
-  using: 'node12'
-  main: 'dist/index.js'
+  using: node12
+  main: dist/index.js

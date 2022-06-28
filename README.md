@@ -85,7 +85,7 @@ Inputs can be used to customize the behavior of the action in both modes.
 | `release-notes-prefix` | If defined, constrains release notes to any text appearing after a line matching this pattern in the pull request body. By default, release notes start at the beginning of the pull request description. |
 | `release-notes-suffix` | If defined, constrains release notes to any text appearing before a line matching this pattern in the pull request body. By default, release notes end at the end of the pull request description. |
 | `with-v` | If true, newly tagged versions will be prefixed with 'v', e.g. 'v1.2.3'. |
-| `dry-run` | If true, no tag will be created in `bump` mode (i.e. only outputs will be set). |
+| `dry-run` | In `bump` mode, no tag will be created (i.e. only outputs will be set). In `validate` mode, only `release-{notes,type}` outputs will be set (i.e. only PR labels will be checked). |
 | `version` | If defined, this will be used as the current version instead of the latest tag. |
 
 ### Using Custom Label Names
@@ -164,6 +164,7 @@ The following outputs are available (in both modes):
 | `old-version` | The version before bumping. |
 | `version` | The version after bumping. |
 | `release-notes` | Release notes found in the pull request description. |
+| `release-type` | Release type (one of `major`, `minor`, or `patch`). |
 
 ## Permissions
 

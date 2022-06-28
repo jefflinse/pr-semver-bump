@@ -55,6 +55,13 @@ async function validateActivePR(config) {
         core.setFailed(`PR validation failed: ${e.message}`)
         return
     }
+    core.setOutput('release-type', releaseType)
+
+    if (config.dryRun) {
+        core.info("Skipping versioning since input 'dry-run' is true")
+        core.setOutput('release-notes', releaseNotes)
+        return
+    }
 
     const currentVersion = await getCurrentVersion(config)
     const newVersion = semver.inc(currentVersion, releaseType)
@@ -89,6 +96,8 @@ async function bumpAndTagNewVersion(config) {
 
     const currentVersion = await getCurrentVersion(config)
     const newVersion = semver.inc(currentVersion, releaseType)
+
+    core.setOutput('release-type', releaseType)
     setOutputs(config.v + currentVersion, config.v + newVersion, releaseNotes)
 
     if (config.dryRun) {
