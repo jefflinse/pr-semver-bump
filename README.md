@@ -42,7 +42,6 @@ jobs:
         name: Validate Pull Request Metadata
         with:
           mode: validate
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
 ```
 
 Use **bump** mode to tag a new release after a pull request actually merges, using that metadata:
@@ -63,7 +62,6 @@ jobs:
         name: Bump and Tag Version
         with:
           mode: bump
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
 ```
 
 The action will fail (in either mode) if any of the following are true:
@@ -79,7 +77,7 @@ Inputs can be used to customize the behavior of the action in both modes.
 | Name | Description |
 | ---- | ----------- |
 | `mode` | ***Required.*** `validate` or `bump`. |
-| `repo-token` | The `GITHUB_TOKEN` for the repo. Needed for fetching pull request data and tagging new releases. |
+| `repo-token` | The `GITHUB_TOKEN` for the repo. Needed for fetching pull request data and tagging new releases. _Default:_ `github.token`. |
 | `major-label` | The name of the label that indicates the pull request should result in a **major** version bump. _Default: 'major release'_. |
 | `minor-label` | The name of the label that indicates the pull request should result in a **minor** version bump. _Default: 'minor release'_. |
 | `patch-label` | The name of the label that indicates the pull request should result in a **patch** version bump. _Default: 'patch release'_. |
@@ -101,7 +99,6 @@ uses: jefflinse/pr-semver-bump@v1
 name: Validate PR Metadata
 with:
   mode: validate
-  repo-token: ${{ secrets.GITHUB_TOKEN }}
   minor-label: new-feature
   patch-label: bug-fix
 ```
@@ -115,7 +112,6 @@ uses: jefflinse/pr-semver-bump@v1
 name: Validate PR Metadata
 with:
   mode: validate
-  repo-token: ${{ secrets.GITHUB_TOKEN }}
   require-release-notes: true
 ```
 
@@ -128,7 +124,6 @@ uses: jefflinse/pr-semver-bump@v1
   name: Validate PR Metadata
   with:
     mode: validate
-    repo-token: ${{ secrets.GITHUB_TOKEN }}
     release-notes-prefix: -- begin release notes --
     release-notes-suffix: -- end release notes --
 ```
@@ -201,7 +196,6 @@ jobs:
         name: Validate Pull Request Metadata
         with:
           mode: validate
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
           major-label: major release
           minor-label: minor release
           patch-label: patch release
@@ -231,7 +225,6 @@ jobs:
         name: Bump and Tag Version
         with:
           mode: bump
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
           major-label: major release
           minor-label: minor release
           patch-label: patch release
