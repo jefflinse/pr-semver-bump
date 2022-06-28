@@ -23,6 +23,10 @@ async function createRelease(version, releaseNotes, config) {
 
 // Returns the most recent tagged version in git.
 async function getCurrentVersion(config) {
+    if (config.version) {
+        return config.version
+    }
+
     const data = await config.octokit.git.listMatchingRefs({
         ...github.context.repo,
         namespace: 'tags/',
