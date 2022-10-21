@@ -24,7 +24,7 @@ async function searchPRByCommit(commitSHA, config) {
     // Rebase merge will not have the information in the commit message
     try {
         const q = `type:pull-request is:merged ${commitSHA}`
-        const data = await config.octokit.search.issuesAndPullRequests({ q })
+        const data = await config.octokit.rest.search.issuesAndPullRequests({ q })
 
         if (data.data.total_count < 1) {
             throw new Error('No results found querying for the PR')
@@ -41,7 +41,7 @@ async function searchPRByCommit(commitSHA, config) {
 // Fetches the details of a pull request.
 async function fetchPR(num, config) {
     try {
-        const data = await config.octokit.pulls.get({
+        const data = await config.octokit.rest.pulls.get({
             ...github.context.repo,
             pull_number: num,
         })
@@ -75,7 +75,15 @@ function getReleaseNotes(pr, config) {
         const lines = pr.body.split(/\r?\n/)
         let withinNotes = config.releaseNotesPrefixPattern === undefined
         let firstLine = 0
+
+        // Default to the entire PR body
         let lastLine = lines.length
+
+        // If a prefix or suffix has been defined default to none of the PR body
+        if (config.releaseNotesPrefixPattern !== undefined
+                || config.releaseNotesSuffixPattern !== undefined) {
+            lastLine = 0
+        }
 
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i]
@@ -88,6 +96,8 @@ function getReleaseNotes(pr, config) {
                 }
             } else if (config.releaseNotesPrefixPattern !== undefined
                 && config.releaseNotesPrefixPattern.test(line)) {
+                // Now that we've seen the prefix, set the lastLine to the end of the message
+                lastLine = lines.length
                 firstLine = i + 1
                 withinNotes = true
             }

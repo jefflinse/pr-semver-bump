@@ -48,7 +48,7 @@ async function getLatestVersionInCommits(commits, sortedVersions, objectsByVersi
 // Tags the specified version and annotates it with the provided release notes.
 async function createRelease(version, releaseNotes, config) {
     const tag = `${config.v}${version}`
-    const tagCreateResponse = await config.octokit.git.createTag({
+    const tagCreateResponse = await config.octokit.rest.git.createTag({
         ...github.context.repo,
         tag: tag,
         message: releaseNotes,
@@ -56,7 +56,7 @@ async function createRelease(version, releaseNotes, config) {
         type: 'commit',
     })
 
-    await config.octokit.git.createRef({
+    await config.octokit.rest.git.createRef({
         ...github.context.repo,
         ref: `refs/tags/${tag}`,
         sha: tagCreateResponse.data.sha,
@@ -67,7 +67,7 @@ async function createRelease(version, releaseNotes, config) {
 
 // Returns the most recent tagged version in git.
 async function getCurrentVersion(config) {
-    const data = await config.octokit.git.listMatchingRefs({
+    const data = await config.octokit.rest.git.listMatchingRefs({
         ...github.context.repo,
         ref: 'tags/',
     })
