@@ -35,6 +35,10 @@ inputs:
     description: Set to 'true' to prefix versions with 'v'
     required: false
     default: 'false'
+  base-branch:
+    description: Set to 'true' to only consider version tags on the PR base branch. By default considers all version tags in the repository.
+    required: false
+    default: 'false'
 outputs:
   old-version:
     description: The version tag prior to bumping
