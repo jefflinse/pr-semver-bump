@@ -39,8 +39,8 @@ test('establishes config from complete set of inputs', () => {
         'minor-label-name': 'minor',
         'patch-label-name': 'patch',
     })
-    expect(config.releaseNotesPrefixPattern).toEqual(new RegExp('release-notes-prefix-text'))
-    expect(config.releaseNotesSuffixPattern).toEqual(new RegExp('release-notes-suffix-text'))
+    expect(config.releaseNotesPrefixPattern).toEqual(/release-notes-prefix-text/)
+    expect(config.releaseNotesSuffixPattern).toEqual(/release-notes-suffix-text/)
     expect(config.requireReleaseNotes).toBe(true)
     expect(config.v).toBe('v')
     expect(config.octokit).toBeDefined()
