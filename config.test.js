@@ -13,6 +13,7 @@ test('establishes config from minimum required inputs', () => {
         'minor release': 'minor',
         'patch release': 'patch',
     })
+    expect(config.noopLabels).toEqual({})
     expect(config.releaseNotesPrefixPattern).toBeUndefined()
     expect(config.releaseNotesSuffixPattern).toBeUndefined()
     expect(config.requireReleaseNotes).toBe(false)
@@ -27,6 +28,7 @@ test('establishes config from complete set of inputs', () => {
     process.env['INPUT_MAJOR-LABEL'] = 'major-label-name'
     process.env['INPUT_MINOR-LABEL'] = 'minor-label-name'
     process.env['INPUT_PATCH-LABEL'] = 'patch-label-name'
+    process.env['INPUT_NOOP-LABELS'] = 'documentation label\nanother-label'
     process.env['INPUT_REQUIRE-RELEASE-NOTES'] = 'true'
     process.env['INPUT_RELEASE-NOTES-PREFIX'] = 'release-notes-prefix-text'
     process.env['INPUT_RELEASE-NOTES-SUFFIX'] = 'release-notes-suffix-text'
@@ -38,6 +40,10 @@ test('establishes config from complete set of inputs', () => {
         'major-label-name': 'major',
         'minor-label-name': 'minor',
         'patch-label-name': 'patch',
+    })
+    expect(config.noopLabels).toEqual({
+        'another-label': 'skip',
+        'documentation label': 'skip',
     })
     expect(config.releaseNotesPrefixPattern).toEqual(/release-notes-prefix-text/)
     expect(config.releaseNotesSuffixPattern).toEqual(/release-notes-suffix-text/)
