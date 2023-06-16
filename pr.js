@@ -66,7 +66,7 @@ function getReleaseType(pr, config) {
     } else if (releaseLabelsPresent.length > 1) {
         throw new Error(`too many release labels specified on PR: ${releaseLabelsPresent}`)
     } else if (releaseLabelsPresent.length >= 1 && noopLabelsPresent.length >= 1) {
-        throw new Error(`release labels and noop labels specified: (${releaseLabelsPresent})  (${noopLabelsPresent}) on PR`)
+        throw new Error(`too manu labels specified, both release labels and noop labels specified: (${releaseLabelsPresent})  (${noopLabelsPresent}) on PR`)
     }
 
     return (releaseLabelsPresent.length === 1)

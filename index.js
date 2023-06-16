@@ -83,17 +83,17 @@ async function bumpAndTagNewVersion(config) {
     core.info(`Processing version bump for PR request #${pr.number}`)
     const releaseType = getReleaseType(pr, config)
     // If the release is skipped, we do not create a new tag.
+    const currentVersion = await getCurrentVersion(config)
     if (releaseType !== 'skip') {
         const releaseNotes = getReleaseNotes(pr, config)
-        const currentVersion = await getCurrentVersion(config)
         const newVersion = semver.inc(currentVersion, releaseType)
         const newTag = await createRelease(newVersion, releaseNotes, config)
         core.info(`Created release tag ${newTag} with the following release notes:\n${releaseNotes}\n`)
 
-        core.setOutput('old-version', `${config.v}${currentVersion}`)
         core.setOutput('version', newTag)
         core.setOutput('release-notes', releaseNotes)
     }
+    core.setOutput('old-version', `${config.v}${currentVersion}`)
     core.setOutput('skipped', (releaseType === 'skip'))
 }
 

@@ -140,7 +140,7 @@ test('can get release type with noop labels', () => {
             'mock-patch-label': 'patch',
         },
         noopLabels: {
-            'documentation': 'skipped',
+            'documentation change': 'skipped',
         },
     }
 
@@ -152,7 +152,7 @@ test('can get release type with only noop labels', () => {
     const mockPR = {
         labels: [
             { name: 'not-release-related' },
-            { name: 'documentation' },
+            { name: 'documentation change' },
         ],
     }
     const config = {
@@ -162,7 +162,7 @@ test('can get release type with only noop labels', () => {
             'mock-patch-label': 'patch',
         },
         noopLabels: {
-            'documentation': 'skip',
+            'documentation change': 'skip',
         },
     }
 
@@ -221,7 +221,7 @@ test('throws if both a valid release label and a noop label are present', () => 
         labels: [
             { name: 'mock-major-label' },
             { name: 'not-release-related' },
-            { name: 'documentation' },
+            { name: 'documentation change' },
         ],
     }
     const config = {
@@ -231,13 +231,13 @@ test('throws if both a valid release label and a noop label are present', () => 
             'mock-patch-label': 'patch',
         },
         noopLabels: {
-            'documentation': 'skipped',
+            'documentation change': 'skipped',
         },
     }
 
     expect(() => {
         getReleaseType(mockPR, config)
-    }).toThrow('release labels and noop labels specified')
+    }).toThrow('too manu labels specified, both release labels and noop labels specified')
 })
 
 describe('can parse release notes', () => {

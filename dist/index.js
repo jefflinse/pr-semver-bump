@@ -35,10 +35,15 @@ function getConfig() {
     releaseLabels[core.getInput('minor-label') || 'minor release'] = 'minor'
     releaseLabels[core.getInput('patch-label') || 'patch release'] = 'patch'
 
+    const noopLabels = { }
+    const configuredNoopLabels = core.getMultilineInput('noop-labels', { trimWhitespace: true })
+    for (let i = 0; i < configuredNoopLabels.length; i++) noopLabels[configuredNoopLabels[i]] = 'skip'
+
     return {
         mode: mode,
         octokit: github.getOctokit(token),
         releaseLabels: releaseLabels,
+        noopLabels: noopLabels,
         releaseNotesPrefixPattern: releaseNotesPrefixPattern,
         releaseNotesSuffixPattern: releaseNotesSuffixPattern,
         requireReleaseNotes: core.getInput('require-release-notes').toLowerCase() === 'true',
@@ -12762,19 +12767,26 @@ async function fetchPR(num, config) {
     }
 }
 
-// Retuns the release type (major, minor, or patch) based on the tags in the PR.
+// Returns the release type (major, minor, patch or skip) based on the tags in the PR.
 function getReleaseType(pr, config) {
     const labelNames = pr.labels.map((label) => label.name)
     const releaseLabelsPresent = labelNames.filter(
         (name) => Object.keys(config.releaseLabels).includes(name),
     )
-    if (releaseLabelsPresent.length === 0) {
+    const noopLabelsPresent = labelNames.filter(
+        (name) => Object.keys(config.noopLabels).includes(name),
+    )
+    if (releaseLabelsPresent.length === 0 && noopLabelsPresent.length === 0) {
         throw new Error('no release label specified on PR')
     } else if (releaseLabelsPresent.length > 1) {
         throw new Error(`too many release labels specified on PR: ${releaseLabelsPresent}`)
+    } else if (releaseLabelsPresent.length >= 1 && noopLabelsPresent.length >= 1) {
+        throw new Error(`too manu labels specified, both release labels and noop labels specified: (${releaseLabelsPresent})  (${noopLabelsPresent}) on PR`)
     }
 
-    return config.releaseLabels[releaseLabelsPresent[0]]
+    return (releaseLabelsPresent.length === 1)
+        ? config.releaseLabels[releaseLabelsPresent[0]]
+        : config.noopLabels[noopLabelsPresent[0]]
 }
 
 // Extracts the release notes from the PR body.
@@ -13204,16 +13216,19 @@ async function bumpAndTagNewVersion(config) {
     }
     core.info(`Processing version bump for PR request #${pr.number}`)
     const releaseType = getReleaseType(pr, config)
-    const releaseNotes = getReleaseNotes(pr, config)
+    // If the release is skipped, we do not create a new tag.
     const currentVersion = await getCurrentVersion(config)
+    if (releaseType !== 'skip') {
+        const releaseNotes = getReleaseNotes(pr, config)
+        const newVersion = semver.inc(currentVersion, releaseType)
+        const newTag = await createRelease(newVersion, releaseNotes, config)
+        core.info(`Created release tag ${newTag} with the following release notes:\n${releaseNotes}\n`)
 
-    const newVersion = semver.inc(currentVersion, releaseType)
-    const newTag = await createRelease(newVersion, releaseNotes, config)
-    core.info(`Created release tag ${newTag} with the following release notes:\n${releaseNotes}\n`)
-
+        core.setOutput('version', newTag)
+        core.setOutput('release-notes', releaseNotes)
+    }
     core.setOutput('old-version', `${config.v}${currentVersion}`)
-    core.setOutput('version', newTag)
-    core.setOutput('release-notes', releaseNotes)
+    core.setOutput('skipped', (releaseType === 'skip'))
 }
 
 async function run() {
