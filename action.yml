@@ -16,6 +16,10 @@ inputs:
     description: The name of the PR label that specifies a patch release
     required: false
     default: 'patch release'
+  noop-labels:
+    description: The name of PR labels that specify a skipped release
+    required: false
+    default: ''
   require-release-notes:
     description: Whether or not release notes are required
     required: false
@@ -46,6 +50,8 @@ outputs:
     description: The version tag after bumping
   release-notes:
     description: The version's release notes
+  skipped:
+    description: Indicator if the new version is skipped
 runs:
   using: 'node16'
   main: 'dist/index.js'
