@@ -117,10 +117,57 @@ test('can get release type', () => {
             'mock-minor-label': 'minor',
             'mock-patch-label': 'patch',
         },
+        noopLabels: {
+        },
     }
 
     const type = getReleaseType(mockPR, config)
     expect(type).toEqual('major')
+})
+
+test('can get release type with noop labels', () => {
+    const mockPR = {
+        labels: [
+            { name: 'mock-major-label' },
+            { name: 'not-release-related' },
+            { name: 'another one' },
+        ],
+    }
+    const config = {
+        releaseLabels: {
+            'mock-major-label': 'major',
+            'mock-minor-label': 'minor',
+            'mock-patch-label': 'patch',
+        },
+        noopLabels: {
+            'documentation change': 'skipped',
+        },
+    }
+
+    const type = getReleaseType(mockPR, config)
+    expect(type).toEqual('major')
+})
+
+test('can get release type with only noop labels', () => {
+    const mockPR = {
+        labels: [
+            { name: 'not-release-related' },
+            { name: 'documentation change' },
+        ],
+    }
+    const config = {
+        releaseLabels: {
+            'mock-major-label': 'major',
+            'mock-minor-label': 'minor',
+            'mock-patch-label': 'patch',
+        },
+        noopLabels: {
+            'documentation change': 'skip',
+        },
+    }
+
+    const type = getReleaseType(mockPR, config)
+    expect(type).toEqual('skip')
 })
 
 test('throws if no valid release label is present', () => {
@@ -136,6 +183,8 @@ test('throws if no valid release label is present', () => {
             'mock-major-label': 'major',
             'mock-minor-label': 'minor',
             'mock-patch-label': 'patch',
+        },
+        noopLabels: {
         },
     }
 
@@ -158,11 +207,37 @@ test('throws if multiple valid release labels are present', () => {
             'mock-minor-label': 'minor',
             'mock-patch-label': 'patch',
         },
+        noopLabels: {
+        },
     }
 
     expect(() => {
         getReleaseType(mockPR, config)
     }).toThrow('too many release labels specified on PR')
+})
+
+test('throws if both a valid release label and a noop label are present', () => {
+    const mockPR = {
+        labels: [
+            { name: 'mock-major-label' },
+            { name: 'not-release-related' },
+            { name: 'documentation change' },
+        ],
+    }
+    const config = {
+        releaseLabels: {
+            'mock-major-label': 'major',
+            'mock-minor-label': 'minor',
+            'mock-patch-label': 'patch',
+        },
+        noopLabels: {
+            'documentation change': 'skipped',
+        },
+    }
+
+    expect(() => {
+        getReleaseType(mockPR, config)
+    }).toThrow('too manu labels specified, both release labels and noop labels specified')
 })
 
 describe('can parse release notes', () => {
