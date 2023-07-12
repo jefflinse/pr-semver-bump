@@ -29,10 +29,15 @@ function getConfig() {
     releaseLabels[core.getInput('minor-label') || 'minor release'] = 'minor'
     releaseLabels[core.getInput('patch-label') || 'patch release'] = 'patch'
 
+    const noopLabels = { }
+    const configuredNoopLabels = core.getMultilineInput('noop-labels', { trimWhitespace: true })
+    for (let i = 0; i < configuredNoopLabels.length; i++) noopLabels[configuredNoopLabels[i]] = 'skip'
+
     return {
         mode: mode,
         octokit: github.getOctokit(token),
         releaseLabels: releaseLabels,
+        noopLabels: noopLabels,
         releaseNotesPrefixPattern: releaseNotesPrefixPattern,
         releaseNotesSuffixPattern: releaseNotesSuffixPattern,
         requireReleaseNotes: core.getInput('require-release-notes').toLowerCase() === 'true',

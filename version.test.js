@@ -1,7 +1,7 @@
 /* eslint-disable no-undef */
 const { getCurrentVersion, createRelease } = require('./version')
 
-test('can get the current version when verion tags are available', async () => {
+test('can get the current version when version tags are available', async () => {
     process.env['GITHUB_REPOSITORY'] = 'mockUser/mockRepo'
     const config = {
         octokit: {
@@ -25,7 +25,7 @@ test('can get the current version when verion tags are available', async () => {
     expect(getCurrentVersion(config)).resolves.toBe('1.4.1')
 })
 
-test('returns a default version when verion tags are unavailable', async () => {
+test('returns a default version when version tags are unavailable', async () => {
     process.env['GITHUB_REPOSITORY'] = 'mockUser/mockRepo'
     const config = {
         octokit: {
