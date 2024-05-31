@@ -53,5 +53,5 @@ outputs:
   skipped:
     description: Indicator if the new version is skipped
 runs:
-  using: 'node16'
+  using: 'node20'
   main: 'dist/index.js'
