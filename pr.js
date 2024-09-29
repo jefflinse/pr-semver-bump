@@ -23,7 +23,7 @@ async function searchPRByCommit(commitSHA, config) {
     // Query GitHub to see if the commit sha is related to a PR
     // Rebase merge will not have the information in the commit message
     try {
-        const q = `type:pull-request is:merged ${commitSHA}`
+        const q = `type:pr is:merged ${commitSHA}`
         const data = await config.octokit.rest.search.issuesAndPullRequests({ q })
 
         if (data.data.total_count < 1) {
