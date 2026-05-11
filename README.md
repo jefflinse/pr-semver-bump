@@ -38,8 +38,8 @@ jobs:
     name: Validate Release Label and Notes
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: jefflinse/pr-semver-bump@v1.6.0
+      - uses: actions/checkout@v4
+      - uses: jefflinse/pr-semver-bump@v1
         name: Validate Pull Request Metadata
         with:
           mode: validate
@@ -59,8 +59,8 @@ jobs:
     name: Bump and Tag Version
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: jefflinse/pr-semver-bump@v1.6.0
+      - uses: actions/checkout@v4
+      - uses: jefflinse/pr-semver-bump@v1
         name: Bump and Tag Version
         with:
           mode: bump
@@ -98,7 +98,7 @@ By default, the action expects pull requests to be [labeled](https://docs.github
 You can specify your own labels instead. For example, if you always use minor releases for features and patch releases for bugs, you might want:
 
 ```yaml
-uses: jefflinse/pr-semver-bump@v1.6.0
+uses: jefflinse/pr-semver-bump@v1
 name: Validate PR Metadata
 with:
   mode: validate
@@ -114,7 +114,7 @@ with:
 Setting `require-release-notes: true` in your workflow configuration will require that some sort of release notes be present. By default, the entire pull request description is used as release notes.
 
 ```yaml
-uses: jefflinse/pr-semver-bump@v1.6.0
+uses: jefflinse/pr-semver-bump@v1
 name: Validate PR Metadata
 with:
   mode: validate
@@ -127,7 +127,7 @@ with:
 By default, the entire pull request description is used as the release notes. If you want to constrain the release notes to just a subset of the description, you can define `release-notes-prefix` and/or `release-notes-suffix` as bounding patterns for the release notes. Lines matching these patterns frame the desired release notes. Any text appearing before the prefix pattern or after the suffix pattern will be ignored.
 
 ```yaml
-uses: jefflinse/pr-semver-bump@v1.6.0
+uses: jefflinse/pr-semver-bump@v1
   name: Validate PR Metadata
   with:
     mode: validate
@@ -174,6 +174,18 @@ The following outputs are available (in both modes):
 | `release-notes` | Release notes found in the pull request description. Not provided when skipped. |
 | `skipped`       | Indicator set to true if the version bump was skipped.                          |
 
+## Pinning a Version
+
+You can reference this action three different ways, depending on how much you value stability vs. automatic updates:
+
+| Reference                            | Behavior                                                                                                  |
+|--------------------------------------|-----------------------------------------------------------------------------------------------------------|
+| `jefflinse/pr-semver-bump@v1`        | Floating major-version tag. Auto-advances to the latest `v1.x.y` release. Recommended for most users.     |
+| `jefflinse/pr-semver-bump@v1.7.4`    | Pinned to a specific release. Won't change unless you bump it. Use when you need deterministic behavior.  |
+| `jefflinse/pr-semver-bump@<sha>`     | Pinned to an exact commit SHA. Most secure (immutable). Use when you have strict supply-chain requirements. |
+
+The `v1` tag is updated automatically after every release of a `v1.x.y` version.
+
 ## Permissions
 
 The following workflow permissions are required by this action. Depending on your situation these may need to be set explicitly. See [GitHub's documentation](https://docs.github.com/en/actions/security-guides/automatic-token-authentication#modifying-the-permissions-for-the-github_token) for more details.
@@ -200,8 +212,8 @@ jobs:
     name: Validate Release Label and Notes
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: jefflinse/pr-semver-bump@v1.6.0
+      - uses: actions/checkout@v4
+      - uses: jefflinse/pr-semver-bump@v1
         name: Validate Pull Request Metadata
         with:
           mode: validate
@@ -233,8 +245,8 @@ jobs:
     name: Bump and Tag Version
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: jefflinse/pr-semver-bump@v1.6.0
+      - uses: actions/checkout@v4
+      - uses: jefflinse/pr-semver-bump@v1
         name: Bump and Tag Version
         with:
           mode: bump
