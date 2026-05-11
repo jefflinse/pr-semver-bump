@@ -48,6 +48,8 @@ function getConfig() {
         releaseNotesSuffixPattern: releaseNotesSuffixPattern,
         requireReleaseNotes: core.getInput('require-release-notes').toLowerCase() === 'true',
         baseBranch: core.getInput('base-branch').toLowerCase() === 'true',
+        dryRun: core.getInput('dry-run').toLowerCase() === 'true',
+        createRelease: core.getInput('create-release').toLowerCase() === 'true',
         v: core.getInput('with-v').toLowerCase() === 'true' ? 'v' : '',
     }
 }
@@ -32749,6 +32751,8 @@ function wrapPermissionError(err, action) {
 }
 
 // Tags the specified version and annotates it with the provided release notes.
+// If config.createRelease is true, also creates a GitHub Release for the tag
+// and returns the release URL alongside the tag.
 async function createRelease(version, releaseNotes, config) {
     const tag = `${config.v}${version}`
     let tagCreateResponse
@@ -32774,7 +32778,22 @@ async function createRelease(version, releaseNotes, config) {
         throw wrapPermissionError(e, `creating ref refs/tags/${tag}`)
     }
 
-    return tag
+    let releaseUrl
+    if (config.createRelease) {
+        try {
+            const release = await config.octokit.rest.repos.createRelease({
+                ...github.context.repo,
+                tag_name: tag,
+                name: tag,
+                body: releaseNotes,
+            })
+            releaseUrl = release.data.html_url
+        } catch (e) {
+            throw wrapPermissionError(e, `creating GitHub Release ${tag}`)
+        }
+    }
+
+    return { tag, releaseUrl }
 }
 
 // Returns the most recent tagged version in git.
@@ -34744,6 +34763,30 @@ function isMergeCommit() {
     return github.context.eventName === 'push' && github.context.payload.head_commit !== undefined
 }
 
+// Splits a semver string (without leading 'v') into its three parts as strings,
+// or returns empty strings if the input isn't valid semver.
+function versionParts(versionStr) {
+    const parsed = semver.parse(versionStr, { loose: true })
+    if (!parsed) return { major: '', minor: '', patch: '' }
+    return {
+        major: String(parsed.major),
+        minor: String(parsed.minor),
+        patch: String(parsed.patch),
+    }
+}
+
+// Centralizes output emission so behavior stays consistent across modes and
+// so we can also emit a single JSON `bump-summary` output for downstream
+// consumers using fromJSON().
+function emitOutputs(outputs) {
+    Object.entries(outputs).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+            core.setOutput(key, value)
+        }
+    })
+    core.setOutput('bump-summary', JSON.stringify(outputs))
+}
+
 // Ensures that the currently active PR contains the required release metadata.
 async function validateActivePR(config) {
     if (!isActivePR()) {
@@ -34771,14 +34814,21 @@ async function validateActivePR(config) {
 
     const currentVersion = await getCurrentVersion(config)
     const newVersion = semver.inc(currentVersion, releaseType)
+    const parts = versionParts(newVersion)
 
     core.info(`current version: ${config.v}${currentVersion}`)
     core.info(`next version: ${config.v}${newVersion}`)
     core.info(`release notes:\n${releaseNotes}`)
 
-    core.setOutput('old-version', `${config.v}${currentVersion}`)
-    core.setOutput('version', `${config.v}${newVersion}`)
-    core.setOutput('release-notes', releaseNotes)
+    emitOutputs({
+        'old-version': `${config.v}${currentVersion}`,
+        version: `${config.v}${newVersion}`,
+        major: parts.major,
+        minor: parts.minor,
+        patch: parts.patch,
+        'release-notes': releaseNotes,
+        skipped: 'false',
+    })
 }
 
 // Increments the version according to the release type and tags a new version with release notes.
@@ -34827,16 +34877,33 @@ async function bumpAndTagNewVersion(config) {
     }
 
     const currentVersion = await getCurrentVersion(config)
+    const outputs = {
+        'old-version': `${config.v}${currentVersion}`,
+        skipped: String(releaseType === 'skip'),
+    }
+
     if (releaseType !== 'skip') {
         const newVersion = semver.inc(currentVersion, releaseType)
-        const newTag = await createRelease(newVersion, releaseNotes, config)
-        core.info(`Created release tag ${newTag} with the following release notes:\n${releaseNotes}\n`)
+        const newTag = `${config.v}${newVersion}`
+        const parts = versionParts(newVersion)
+        outputs.version = newTag
+        outputs.major = parts.major
+        outputs.minor = parts.minor
+        outputs.patch = parts.patch
+        outputs['release-notes'] = releaseNotes
 
-        core.setOutput('version', newTag)
-        core.setOutput('release-notes', releaseNotes)
+        if (config.dryRun) {
+            core.info(`[dry-run] would create tag ${newTag} with the following release notes:\n${releaseNotes}\n`)
+        } else {
+            const result = await createRelease(newVersion, releaseNotes, config)
+            core.info(`Created release tag ${result.tag} with the following release notes:\n${releaseNotes}\n`)
+            if (result.releaseUrl) {
+                outputs['release-url'] = result.releaseUrl
+            }
+        }
     }
-    core.setOutput('old-version', `${config.v}${currentVersion}`)
-    core.setOutput('skipped', String(releaseType === 'skip'))
+
+    emitOutputs(outputs)
 }
 
 async function run() {

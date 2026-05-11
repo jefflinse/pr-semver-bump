@@ -204,7 +204,7 @@ test.each(baseBranchCases)('returns the latest version on a branch', async (inpu
     return expect(getCurrentVersion(config)).resolves.toBe(expected)
 })
 
-test('can create a new release', async () => {
+test('can create a new release (tag-only)', async () => {
     process.env['GITHUB_REPOSITORY'] = 'mockUser/mockRepo'
     const config = {
         octokit: {
@@ -218,9 +218,37 @@ test('can create a new release', async () => {
     }
 
     config.v = ''
-    await expect(createRelease('1.2.3', 'mock release notes', config)).resolves.toBe('1.2.3')
+    await expect(createRelease('1.2.3', 'mock release notes', config))
+        .resolves.toEqual({ tag: '1.2.3', releaseUrl: undefined })
     config.v = 'v'
-    await expect(createRelease('1.2.3', 'mock release notes', config)).resolves.toBe('v1.2.3')
+    await expect(createRelease('1.2.3', 'mock release notes', config))
+        .resolves.toEqual({ tag: 'v1.2.3', releaseUrl: undefined })
+})
+
+test('createRelease also creates a GitHub Release when create-release is true', async () => {
+    process.env['GITHUB_REPOSITORY'] = 'mockUser/mockRepo'
+    const config = {
+        v: 'v',
+        createRelease: true,
+        octokit: {
+            rest: {
+                git: {
+                    createTag: async () => ({ data: { sha: 'mockSha' } }),
+                    createRef: async () => ({}),
+                },
+                repos: {
+                    createRelease: async (opts) => ({
+                        data: { html_url: `https://github.com/mockUser/mockRepo/releases/tag/${opts.tag_name}` },
+                    }),
+                },
+            },
+        },
+    }
+
+    await expect(createRelease('1.2.3', 'notes', config)).resolves.toEqual({
+        tag: 'v1.2.3',
+        releaseUrl: 'https://github.com/mockUser/mockRepo/releases/tag/v1.2.3',
+    })
 })
 
 test('createRelease wraps a 403 from createTag with a permissions hint', async () => {

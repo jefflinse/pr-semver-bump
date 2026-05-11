@@ -62,6 +62,8 @@ function wrapPermissionError(err, action) {
 }
 
 // Tags the specified version and annotates it with the provided release notes.
+// If config.createRelease is true, also creates a GitHub Release for the tag
+// and returns the release URL alongside the tag.
 async function createRelease(version, releaseNotes, config) {
     const tag = `${config.v}${version}`
     let tagCreateResponse
@@ -87,7 +89,22 @@ async function createRelease(version, releaseNotes, config) {
         throw wrapPermissionError(e, `creating ref refs/tags/${tag}`)
     }
 
-    return tag
+    let releaseUrl
+    if (config.createRelease) {
+        try {
+            const release = await config.octokit.rest.repos.createRelease({
+                ...github.context.repo,
+                tag_name: tag,
+                name: tag,
+                body: releaseNotes,
+            })
+            releaseUrl = release.data.html_url
+        } catch (e) {
+            throw wrapPermissionError(e, `creating GitHub Release ${tag}`)
+        }
+    }
+
+    return { tag, releaseUrl }
 }
 
 // Returns the most recent tagged version in git.

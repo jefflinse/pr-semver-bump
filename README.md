@@ -90,6 +90,8 @@ Inputs can be used to customize the behavior of the action in both modes.
 | `release-notes-suffix`  | If defined, constrains release notes to any text appearing before a line matching this pattern in the pull request body. By default, release notes end at the end of the pull request description.        |
 | `with-v`                | If true, newly tagged versions will be prefixed with 'v', e.g. 'v1.2.3'.                                                                                                                                  |
 | `base-branch`           | Whether or not to only consider version tags on the base branch in the pull request.                                                                                                                      |
+| `dry-run`               | If true, computes the next version and emits all outputs but does **not** create a tag or release. Useful for previews and PR comments.                                                                   |
+| `create-release`        | If true, also creates a GitHub Release (in addition to the annotated tag) when bumping in `bump` mode. Surfaces the release URL via `release-url`.                                                        |
 
 ### Using Custom Label Names
 
@@ -167,12 +169,17 @@ and the resulting release notes would contain:
 
 The following outputs are available (in both modes):
 
-| Name            | Description                                                                     |
-|-----------------|---------------------------------------------------------------------------------|
-| `old-version`   | The version before bumping.                                                     |
-| `version`       | The version after bumping. Not provided when skipped.                           |
-| `release-notes` | Release notes found in the pull request description. Not provided when skipped. |
-| `skipped`       | Indicator set to true if the version bump was skipped.                          |
+| Name            | Description                                                                                       |
+|-----------------|---------------------------------------------------------------------------------------------------|
+| `old-version`   | The version before bumping.                                                                       |
+| `version`       | The version after bumping. Not provided when skipped.                                             |
+| `major`         | The major component of the new version (e.g. `1` for `v1.2.3`). Not provided when skipped.       |
+| `minor`         | The minor component of the new version (e.g. `2` for `v1.2.3`). Not provided when skipped.       |
+| `patch`         | The patch component of the new version (e.g. `3` for `v1.2.3`). Not provided when skipped.       |
+| `release-notes` | Release notes found in the pull request description. Not provided when skipped.                   |
+| `release-url`   | URL of the created GitHub Release. Only set when `create-release: true` and a release was created. |
+| `skipped`       | Indicator set to `'true'` if the version bump was skipped.                                        |
+| `bump-summary`  | A JSON object containing all of the above outputs. Useful for downstream `fromJSON()` consumers. |
 
 ## Pinning a Version
 
@@ -228,6 +235,8 @@ jobs:
           release-notes-suffix: ''
           with-v: false
           base-branch: false
+          dry-run: false
+          create-release: false
 ```
 
 Create a CI workflow to run whenever a pull request is merged. All optional inputs are explicitly set to their default values in the configuration below.
@@ -261,6 +270,8 @@ jobs:
           release-notes-suffix: ''
           with-v: false
           base-branch: false
+          dry-run: false
+          create-release: false
 ```
 
 ## Contributing
