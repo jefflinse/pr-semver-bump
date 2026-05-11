@@ -7,6 +7,9 @@ jobs:
   validate:
     name: Validate Release Label and Notes
     runs-on: ubuntu-latest
+    # Dependabot PRs can't read repo secrets and don't need to be gated on
+    # release metadata; we apply the right label automatically via dependabot.yml.
+    if: github.actor != 'dependabot[bot]'
     steps:
       - uses: actions/checkout@v4
       - uses: ./
