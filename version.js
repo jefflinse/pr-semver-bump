@@ -23,10 +23,11 @@ async function getCommitsOnBranch(branch, config) {
 
 async function getLatestVersionInCommits(commits, sortedVersions, objectsByVersion, config) {
     for (let i = 0; i < sortedVersions.length; i++) {
-        const refObj = objectsByVersion[sortedVersions[i]]
+        const key = sortedVersions[i].version
+        const refObj = objectsByVersion[key]
 
         if (refObj.type === 'commit' && commits.has(refObj.sha)) {
-            return `${sortedVersions[i]}`
+            return key
         }
 
         if (refObj.type === 'tag') {
@@ -37,7 +38,7 @@ async function getLatestVersionInCommits(commits, sortedVersions, objectsByVersi
             })
 
             if (commits.has(tag.data.object.sha)) {
-                return `${sortedVersions[i]}`
+                return key
             }
         }
     }
@@ -45,44 +46,73 @@ async function getLatestVersionInCommits(commits, sortedVersions, objectsByVersi
     return DEFAULT_VERSION
 }
 
+// Wraps an octokit error with a friendlier message when the failure is due
+// to insufficient token permissions.
+function wrapPermissionError(err, action) {
+    if (err && (err.status === 403 || err.status === 404)) {
+        const e = new Error(
+            `${action} failed: ${err.message}. `
+            + 'This is usually caused by a missing `contents: write` permission '
+            + 'on the GITHUB_TOKEN. See README §Permissions.',
+        )
+        e.status = err.status
+        return e
+    }
+    return err
+}
+
 // Tags the specified version and annotates it with the provided release notes.
 async function createRelease(version, releaseNotes, config) {
     const tag = `${config.v}${version}`
-    const tagCreateResponse = await config.octokit.rest.git.createTag({
-        ...github.context.repo,
-        tag: tag,
-        message: releaseNotes,
-        object: process.env.GITHUB_SHA,
-        type: 'commit',
-    })
+    let tagCreateResponse
+    try {
+        tagCreateResponse = await config.octokit.rest.git.createTag({
+            ...github.context.repo,
+            tag: tag,
+            message: releaseNotes,
+            object: process.env.GITHUB_SHA,
+            type: 'commit',
+        })
+    } catch (e) {
+        throw wrapPermissionError(e, `creating annotated tag ${tag}`)
+    }
 
-    await config.octokit.rest.git.createRef({
-        ...github.context.repo,
-        ref: `refs/tags/${tag}`,
-        sha: tagCreateResponse.data.sha,
-    })
+    try {
+        await config.octokit.rest.git.createRef({
+            ...github.context.repo,
+            ref: `refs/tags/${tag}`,
+            sha: tagCreateResponse.data.sha,
+        })
+    } catch (e) {
+        throw wrapPermissionError(e, `creating ref refs/tags/${tag}`)
+    }
 
     return tag
 }
 
 // Returns the most recent tagged version in git.
 async function getCurrentVersion(config) {
-    const data = await config.octokit.rest.git.listMatchingRefs({
-        ...github.context.repo,
-        ref: 'tags/',
-    })
-
-    const objectsByVersion = new Map()
+    const objectsByVersion = {}
     const versions = []
 
-    data.data.forEach((ref) => {
-        const version = semver.parse(ref.ref.replace(/^refs\/tags\//g, ''), { loose: true })
+    // eslint-disable-next-line no-restricted-syntax
+    for await (const response of config.octokit.paginate.iterator(
+        config.octokit.rest.git.listMatchingRefs,
+        {
+            ...github.context.repo,
+            ref: 'tags/',
+            per_page: 100,
+        },
+    )) {
+        response.data.forEach((ref) => {
+            const version = semver.parse(ref.ref.replace(/^refs\/tags\//g, ''), { loose: true })
 
-        if (version !== null) {
-            objectsByVersion[version] = ref.object
-            versions.push(version)
-        }
-    })
+            if (version !== null) {
+                objectsByVersion[version.version] = ref.object
+                versions.push(version)
+            }
+        })
+    }
 
     versions.sort(semver.rcompare)
 
@@ -94,7 +124,7 @@ async function getCurrentVersion(config) {
     }
 
     if (versions[0] !== undefined) {
-        return `${versions[0]}`
+        return versions[0].version
     }
 
     return DEFAULT_VERSION

@@ -21,11 +21,40 @@ test('returns null if no PR number is found in a commit message', () => {
     expect(extractPRNumber('Merge branch master into some/mockBranch')).toEqual(null)
 })
 
-test('searchPRByCommit returns a PR', async () => {
+test('searchPRByCommit returns a PR via listPullRequestsAssociatedWithCommit', async () => {
+    process.env['GITHUB_REPOSITORY'] = 'mockUser/mockRepo'
     const sha = '123456789'
     const config = {
         octokit: {
             rest: {
+                repos: {
+                    listPullRequestsAssociatedWithCommit: async () => ({
+                        data: [{ number: 15, id: sha, merged_at: '2024-01-01T00:00:00Z' }],
+                    }),
+                },
+                search: {
+                    issuesAndPullRequests: async () => {
+                        throw new Error('search should not be called when associated lookup succeeds')
+                    },
+                },
+            },
+        },
+    }
+    await expect(searchPRByCommit(sha, config)).resolves.toMatchObject({ number: 15 })
+})
+
+test('searchPRByCommit falls back to search API when associated lookup yields no merged PR', async () => {
+    process.env['GITHUB_REPOSITORY'] = 'mockUser/mockRepo'
+    const sha = '123456789'
+    const config = {
+        octokit: {
+            rest: {
+                repos: {
+                    listPullRequestsAssociatedWithCommit: async () => ({
+                        // Returned an open PR with no merged_at -- skip it
+                        data: [{ number: 99, merged_at: null }],
+                    }),
+                },
                 search: {
                     issuesAndPullRequests: async (options) => ({
                         data: {
@@ -38,28 +67,38 @@ test('searchPRByCommit returns a PR', async () => {
             },
         },
     }
-    expect(searchPRByCommit(sha, config)).resolves.toEqual({ number: 15, id: sha })
+    await expect(searchPRByCommit(sha, config)).resolves.toEqual({ number: 15, id: sha })
 })
 
-test('searchPRByCommit Fails to find PR', async () => {
+test('searchPRByCommit returns null when no PR is associated', async () => {
+    process.env['GITHUB_REPOSITORY'] = 'mockUser/mockRepo'
     const sha = '123456789'
     const config = {
         octokit: {
             rest: {
+                repos: {
+                    listPullRequestsAssociatedWithCommit: async () => ({ data: [] }),
+                },
                 search: {
                     issuesAndPullRequests: async () => ({ data: { total_count: 0 } }),
                 },
             },
         },
     }
-    expect(searchPRByCommit(sha, config)).rejects.toThrow(`Failed to find PR by commit SHA ${sha}: No results found querying for the PR`)
+    await expect(searchPRByCommit(sha, config)).resolves.toBeNull()
 })
 
-test('searchPRByCommit throws an error on query', async () => {
+test('searchPRByCommit throws when both lookups error', async () => {
+    process.env['GITHUB_REPOSITORY'] = 'mockUser/mockRepo'
     const sha = '123456789'
     const config = {
         octokit: {
             rest: {
+                repos: {
+                    listPullRequestsAssociatedWithCommit: async () => {
+                        throw new Error('listPRs error')
+                    },
+                },
                 search: {
                     issuesAndPullRequests: async () => {
                         throw new Error('mock error')
@@ -68,7 +107,7 @@ test('searchPRByCommit throws an error on query', async () => {
             },
         },
     }
-    expect(searchPRByCommit(sha, config)).rejects.toThrow(`Failed to find PR by commit SHA ${sha}: mock error`)
+    await expect(searchPRByCommit(sha, config)).rejects.toThrow(`Failed to find PR by commit SHA ${sha}: mock error`)
 })
 
 test('can fetch PR data', async () => {
@@ -190,7 +229,7 @@ test('throws if no valid release label is present', () => {
 
     expect(() => {
         getReleaseType(mockPR, config)
-    }).toThrow('no release label specified on PR')
+    }).toThrow('no release label specified on PR (expected one of: mock-major-label, mock-minor-label, mock-patch-label)')
 })
 
 test('throws if multiple valid release labels are present', () => {

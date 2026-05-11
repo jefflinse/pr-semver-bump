@@ -32555,20 +32555,35 @@ function extractPRNumber(commitMsg) {
     return null
 }
 
+// Returns a merged PR associated with the given commit SHA, or null if none
+// is found. Tries the lighter-weight repos endpoint first; falls back to the
+// search API (which is more rate-limited but works in some edge cases).
 async function searchPRByCommit(commitSHA, config) {
-    // Query GitHub to see if the commit sha is related to a PR
-    // Rebase merge will not have the information in the commit message
     try {
-        const q = `type:pr is:merged ${commitSHA}`
+        const assoc = await config.octokit.rest.repos.listPullRequestsAssociatedWithCommit({
+            ...github.context.repo,
+            commit_sha: commitSHA,
+        })
+
+        const merged = (assoc.data || []).find(
+            (p) => p.merged_at !== null && p.merged_at !== undefined,
+        )
+        if (merged) {
+            return merged
+        }
+    } catch (e) {
+        // fall through to the search API
+    }
+
+    try {
+        const q = `is:merged ${commitSHA}`
         const data = await config.octokit.rest.search.issuesAndPullRequests({ q })
 
         if (data.data.total_count < 1) {
-            throw new Error('No results found querying for the PR')
+            return null
         }
 
-        // We should only find one PR with the commit SHA that was merged so take the first one
-        const pr = data.data.items[0]
-        return pr
+        return data.data.items[0]
     } catch (fetchError) {
         throw new Error(`Failed to find PR by commit SHA ${commitSHA}: ${fetchError.message}`)
     }
@@ -32597,8 +32612,10 @@ function getReleaseType(pr, config) {
     const noopLabelsPresent = labelNames.filter(
         (name) => Object.keys(config.noopLabels).includes(name),
     )
+
     if (releaseLabelsPresent.length === 0 && noopLabelsPresent.length === 0) {
-        throw new Error('no release label specified on PR')
+        const expected = [...Object.keys(config.releaseLabels), ...Object.keys(config.noopLabels)]
+        throw new Error(`no release label specified on PR (expected one of: ${expected.join(', ')})`)
     } else if (releaseLabelsPresent.length > 1) {
         throw new Error(`too many release labels specified on PR: ${releaseLabelsPresent}`)
     } else if (releaseLabelsPresent.length >= 1 && noopLabelsPresent.length >= 1) {
@@ -32693,10 +32710,11 @@ async function getCommitsOnBranch(branch, config) {
 
 async function getLatestVersionInCommits(commits, sortedVersions, objectsByVersion, config) {
     for (let i = 0; i < sortedVersions.length; i++) {
-        const refObj = objectsByVersion[sortedVersions[i]]
+        const key = sortedVersions[i].version
+        const refObj = objectsByVersion[key]
 
         if (refObj.type === 'commit' && commits.has(refObj.sha)) {
-            return `${sortedVersions[i]}`
+            return key
         }
 
         if (refObj.type === 'tag') {
@@ -32707,7 +32725,7 @@ async function getLatestVersionInCommits(commits, sortedVersions, objectsByVersi
             })
 
             if (commits.has(tag.data.object.sha)) {
-                return `${sortedVersions[i]}`
+                return key
             }
         }
     }
@@ -32715,44 +32733,73 @@ async function getLatestVersionInCommits(commits, sortedVersions, objectsByVersi
     return DEFAULT_VERSION
 }
 
+// Wraps an octokit error with a friendlier message when the failure is due
+// to insufficient token permissions.
+function wrapPermissionError(err, action) {
+    if (err && (err.status === 403 || err.status === 404)) {
+        const e = new Error(
+            `${action} failed: ${err.message}. `
+            + 'This is usually caused by a missing `contents: write` permission '
+            + 'on the GITHUB_TOKEN. See README §Permissions.',
+        )
+        e.status = err.status
+        return e
+    }
+    return err
+}
+
 // Tags the specified version and annotates it with the provided release notes.
 async function createRelease(version, releaseNotes, config) {
     const tag = `${config.v}${version}`
-    const tagCreateResponse = await config.octokit.rest.git.createTag({
-        ...github.context.repo,
-        tag: tag,
-        message: releaseNotes,
-        object: process.env.GITHUB_SHA,
-        type: 'commit',
-    })
+    let tagCreateResponse
+    try {
+        tagCreateResponse = await config.octokit.rest.git.createTag({
+            ...github.context.repo,
+            tag: tag,
+            message: releaseNotes,
+            object: process.env.GITHUB_SHA,
+            type: 'commit',
+        })
+    } catch (e) {
+        throw wrapPermissionError(e, `creating annotated tag ${tag}`)
+    }
 
-    await config.octokit.rest.git.createRef({
-        ...github.context.repo,
-        ref: `refs/tags/${tag}`,
-        sha: tagCreateResponse.data.sha,
-    })
+    try {
+        await config.octokit.rest.git.createRef({
+            ...github.context.repo,
+            ref: `refs/tags/${tag}`,
+            sha: tagCreateResponse.data.sha,
+        })
+    } catch (e) {
+        throw wrapPermissionError(e, `creating ref refs/tags/${tag}`)
+    }
 
     return tag
 }
 
 // Returns the most recent tagged version in git.
 async function getCurrentVersion(config) {
-    const data = await config.octokit.rest.git.listMatchingRefs({
-        ...github.context.repo,
-        ref: 'tags/',
-    })
-
-    const objectsByVersion = new Map()
+    const objectsByVersion = {}
     const versions = []
 
-    data.data.forEach((ref) => {
-        const version = semver.parse(ref.ref.replace(/^refs\/tags\//g, ''), { loose: true })
+    // eslint-disable-next-line no-restricted-syntax
+    for await (const response of config.octokit.paginate.iterator(
+        config.octokit.rest.git.listMatchingRefs,
+        {
+            ...github.context.repo,
+            ref: 'tags/',
+            per_page: 100,
+        },
+    )) {
+        response.data.forEach((ref) => {
+            const version = semver.parse(ref.ref.replace(/^refs\/tags\//g, ''), { loose: true })
 
-        if (version !== null) {
-            objectsByVersion[version] = ref.object
-            versions.push(version)
-        }
-    })
+            if (version !== null) {
+                objectsByVersion[version.version] = ref.object
+                versions.push(version)
+            }
+        })
+    }
 
     versions.sort(semver.rcompare)
 
@@ -32764,7 +32811,7 @@ async function getCurrentVersion(config) {
     }
 
     if (versions[0] !== undefined) {
-        return `${versions[0]}`
+        return versions[0].version
     }
 
     return DEFAULT_VERSION
@@ -34745,23 +34792,42 @@ async function bumpAndTagNewVersion(config) {
     let pr
     if (num == null) {
         core.info('Unable to determine PR from commit msg, searching for PR by SHA')
-        // Try to search the commit sha for the PR number
-        pr = await searchPRByCommit(process.env.GITHUB_SHA, config)
+        try {
+            pr = await searchPRByCommit(process.env.GITHUB_SHA, config)
+        } catch (e) {
+            core.setFailed(e.message)
+            return
+        }
         if (pr == null) {
-            // Don't want to fail the job if some other commit comes in, but let's warn about it.
-            // Might be a good point for configuration in the future.
+            // No associated PR (e.g. an initial commit, or a direct push). Skip
+            // gracefully rather than failing the job; this matches issue #27.
             core.warning("head commit doesn't look like a PR merge, skipping version bumping and tagging")
             return
         }
     } else {
-        pr = await fetchPR(num, config)
+        try {
+            pr = await fetchPR(num, config)
+        } catch (e) {
+            core.setFailed(e.message)
+            return
+        }
     }
     core.info(`Processing version bump for PR request #${pr.number}`)
-    const releaseType = getReleaseType(pr, config)
-    // If the release is skipped, we do not create a new tag.
+
+    let releaseType
+    let releaseNotes
+    try {
+        releaseType = getReleaseType(pr, config)
+        if (releaseType !== 'skip') {
+            releaseNotes = getReleaseNotes(pr, config)
+        }
+    } catch (e) {
+        core.setFailed(`PR validation failed: ${e.message}`)
+        return
+    }
+
     const currentVersion = await getCurrentVersion(config)
     if (releaseType !== 'skip') {
-        const releaseNotes = getReleaseNotes(pr, config)
         const newVersion = semver.inc(currentVersion, releaseType)
         const newTag = await createRelease(newVersion, releaseNotes, config)
         core.info(`Created release tag ${newTag} with the following release notes:\n${releaseNotes}\n`)
@@ -34770,7 +34836,7 @@ async function bumpAndTagNewVersion(config) {
         core.setOutput('release-notes', releaseNotes)
     }
     core.setOutput('old-version', `${config.v}${currentVersion}`)
-    core.setOutput('skipped', (releaseType === 'skip'))
+    core.setOutput('skipped', String(releaseType === 'skip'))
 }
 
 async function run() {
