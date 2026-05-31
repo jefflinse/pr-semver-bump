@@ -38609,29 +38609,40 @@ async function validateActivePR(config) {
     let releaseNotes
     try {
         releaseType = getReleaseType(pr, config)
-        releaseNotes = getReleaseNotes(pr, config)
+        if (releaseType !== 'skip') {
+            releaseNotes = getReleaseNotes(pr, config)
+        }
     } catch (e) {
         core.setFailed(`PR validation failed: ${e.message}`)
         return
     }
 
     const currentVersion = await getCurrentVersion(config)
-    const newVersion = semver.inc(currentVersion, releaseType)
-    const parts = versionParts(newVersion)
-
     core.info(`current version: ${config.v}${currentVersion}`)
-    core.info(`next version: ${config.v}${newVersion}`)
-    core.info(`release notes:\n${releaseNotes}`)
 
-    emitOutputs({
+    const outputs = {
         'old-version': `${config.v}${currentVersion}`,
-        version: `${config.v}${newVersion}`,
-        major: parts.major,
-        minor: parts.minor,
-        patch: parts.patch,
-        'release-notes': releaseNotes,
-        skipped: 'false',
-    })
+        skipped: String(releaseType === 'skip'),
+    }
+
+    if (releaseType === 'skip') {
+        // A no-op label is present: there's no next version to compute and no
+        // release notes to require. Validation passes as a real skip, matching
+        // the behavior of 'bump' mode.
+        core.info('PR has a no-op label; validation passed with no version bump')
+    } else {
+        const newVersion = semver.inc(currentVersion, releaseType)
+        const parts = versionParts(newVersion)
+        core.info(`next version: ${config.v}${newVersion}`)
+        core.info(`release notes:\n${releaseNotes}`)
+        outputs.version = `${config.v}${newVersion}`
+        outputs.major = parts.major
+        outputs.minor = parts.minor
+        outputs.patch = parts.patch
+        outputs['release-notes'] = releaseNotes
+    }
+
+    emitOutputs(outputs)
 }
 
 // Increments the version according to the release type and tags a new version with release notes.
