@@ -37527,8 +37527,10 @@ function wrapPermissionError(err, action) {
     if (err && (err.status === 403 || err.status === 404)) {
         const e = new Error(
             `${action} failed: ${err.message}. `
-            + 'This is usually caused by a missing `contents: write` permission '
-            + 'on the GITHUB_TOKEN. See README §Permissions.',
+            + 'This is usually caused by insufficient permissions on the token '
+            + 'supplied via the `repo-token` input. The default GITHUB_TOKEN needs '
+            + 'the `contents: write` workflow permission; a PAT or GitHub App token '
+            + 'needs equivalent repository write access. See README §Permissions.',
         )
         e.status = err.status
         return e

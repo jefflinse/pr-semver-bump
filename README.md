@@ -107,8 +107,8 @@ with:
   repo-token: ${{ secrets.GITHUB_TOKEN }}
   minor-label: new-feature
   patch-label: bug-fix
-  noop-labels:
-    - documentation change
+  noop-labels: |
+    documentation change
 ```
 
 ### Requiring Release Notes
@@ -228,8 +228,8 @@ jobs:
           major-label: major release
           minor-label: minor release
           patch-label: patch release
-          noop-labels:
-            - documentation change
+          noop-labels: |
+            documentation change
           require-release-notes: true
           release-notes-prefix: ''
           release-notes-suffix: ''
@@ -263,8 +263,8 @@ jobs:
           major-label: major release
           minor-label: minor release
           patch-label: patch release
-          noop-labels:
-            - documentation change
+          noop-labels: |
+            documentation change
           require-release-notes: true
           release-notes-prefix: ''
           release-notes-suffix: ''
