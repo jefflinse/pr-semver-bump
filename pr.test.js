@@ -46,6 +46,7 @@ test('searchPRByCommit returns a PR via listPullRequestsAssociatedWithCommit', a
 test('searchPRByCommit falls back to search API when associated lookup yields no merged PR', async () => {
     process.env['GITHUB_REPOSITORY'] = 'mockUser/mockRepo'
     const sha = '123456789'
+    let capturedQuery
     const config = {
         octokit: {
             rest: {
@@ -56,18 +57,26 @@ test('searchPRByCommit falls back to search API when associated lookup yields no
                     }),
                 },
                 search: {
-                    issuesAndPullRequests: async (options) => ({
-                        data: {
-                            total_count: 1,
-                            items: [{ number: 15, id: sha }],
-                            query: options.q,
-                        },
-                    }),
+                    issuesAndPullRequests: async (options) => {
+                        capturedQuery = options.q
+                        return {
+                            data: {
+                                total_count: 1,
+                                items: [{ number: 15, id: sha }],
+                            },
+                        }
+                    },
                 },
             },
         },
     }
     await expect(searchPRByCommit(sha, config)).resolves.toEqual({ number: 15, id: sha })
+    // The fallback query must be scoped to this repo and to PRs, so it can't
+    // match an issue or a PR in a different repository with the same SHA.
+    expect(capturedQuery).toContain('repo:mockUser/mockRepo')
+    expect(capturedQuery).toContain('is:pr')
+    expect(capturedQuery).toContain('is:merged')
+    expect(capturedQuery).toContain(sha)
 })
 
 test('searchPRByCommit returns null when no PR is associated', async () => {

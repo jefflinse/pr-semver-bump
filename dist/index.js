@@ -37359,7 +37359,12 @@ async function searchPRByCommit(commitSHA, config) {
     }
 
     try {
-        const q = `is:merged ${commitSHA}`
+        // Scope the search to this repo and to PRs only. Without the repo:
+        // qualifier the search spans all of GitHub and could return a merged
+        // PR from another repository that happens to match the SHA, and
+        // without is:pr it could return an issue rather than a pull request.
+        const { owner, repo } = github.context.repo
+        const q = `repo:${owner}/${repo} is:pr is:merged ${commitSHA}`
         const data = await config.octokit.rest.search.issuesAndPullRequests({ q })
 
         if (data.data.total_count < 1) {

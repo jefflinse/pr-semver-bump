@@ -19,6 +19,14 @@ jobs:
     name: Analyze
     runs-on: ubuntu-latest
 
+    # CodeQL needs to read the repo and upload its results to code scanning.
+    # Declaring these explicitly keeps the workflow working on repos whose
+    # default GITHUB_TOKEN permissions are read-only.
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
     strategy:
       fail-fast: false
       matrix:
