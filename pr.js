@@ -19,20 +19,40 @@ function extractPRNumber(commitMsg) {
     return null
 }
 
+// Returns a merged PR associated with the given commit SHA, or null if none
+// is found. Tries the lighter-weight repos endpoint first; falls back to the
+// search API (which is more rate-limited but works in some edge cases).
 async function searchPRByCommit(commitSHA, config) {
-    // Query GitHub to see if the commit sha is related to a PR
-    // Rebase merge will not have the information in the commit message
     try {
-        const q = `type:pr is:merged ${commitSHA}`
+        const assoc = await config.octokit.rest.repos.listPullRequestsAssociatedWithCommit({
+            ...github.context.repo,
+            commit_sha: commitSHA,
+        })
+
+        const merged = (assoc.data || []).find(
+            (p) => p.merged_at !== null && p.merged_at !== undefined,
+        )
+        if (merged) {
+            return merged
+        }
+    } catch (e) {
+        // fall through to the search API
+    }
+
+    try {
+        // Scope the search to this repo and to PRs only. Without the repo:
+        // qualifier the search spans all of GitHub and could return a merged
+        // PR from another repository that happens to match the SHA, and
+        // without is:pr it could return an issue rather than a pull request.
+        const { owner, repo } = github.context.repo
+        const q = `repo:${owner}/${repo} is:pr is:merged ${commitSHA}`
         const data = await config.octokit.rest.search.issuesAndPullRequests({ q })
 
         if (data.data.total_count < 1) {
-            throw new Error('No results found querying for the PR')
+            return null
         }
 
-        // We should only find one PR with the commit SHA that was merged so take the first one
-        const pr = data.data.items[0]
-        return pr
+        return data.data.items[0]
     } catch (fetchError) {
         throw new Error(`Failed to find PR by commit SHA ${commitSHA}: ${fetchError.message}`)
     }
@@ -61,12 +81,14 @@ function getReleaseType(pr, config) {
     const noopLabelsPresent = labelNames.filter(
         (name) => Object.keys(config.noopLabels).includes(name),
     )
+
     if (releaseLabelsPresent.length === 0 && noopLabelsPresent.length === 0) {
-        throw new Error('no release label specified on PR')
+        const expected = [...Object.keys(config.releaseLabels), ...Object.keys(config.noopLabels)]
+        throw new Error(`no release label specified on PR (expected one of: ${expected.join(', ')})`)
     } else if (releaseLabelsPresent.length > 1) {
         throw new Error(`too many release labels specified on PR: ${releaseLabelsPresent}`)
     } else if (releaseLabelsPresent.length >= 1 && noopLabelsPresent.length >= 1) {
-        throw new Error(`too manu labels specified, both release labels and noop labels specified: (${releaseLabelsPresent})  (${noopLabelsPresent}) on PR`)
+        throw new Error(`too many labels specified, both release labels and noop labels specified: (${releaseLabelsPresent}) (${noopLabelsPresent}) on PR`)
     }
 
     return (releaseLabelsPresent.length === 1)

@@ -1,0 +1,29 @@
+name: Verify dist/ is in sync with source
+
+# The action runs from dist/. If a contributor edits source but doesn't
+# rebuild, the action will silently keep using the old behavior. This job
+# rebuilds dist and fails if it differs from what's committed.
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+
+jobs:
+  verify-dist:
+    name: Rebuild dist and check for drift
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - run: npm ci
+      - run: npm run prepare
+      - name: Fail if dist/ differs from source
+        run: |
+          if ! git diff --exit-code -- dist; then
+            echo "::error::dist/ is out of sync with source. Run 'npm run prepare' locally and commit the result."
+            exit 1
+          fi

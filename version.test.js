@@ -1,49 +1,75 @@
 /* eslint-disable no-undef */
 const { getCurrentVersion, createRelease } = require('./version')
 
+// Build an octokit mock whose paginate.iterator yields one or more pages
+// of refs from listMatchingRefs.
+function refsOctokit(pages, extra = {}) {
+    async function* iterator() {
+        for (let i = 0; i < pages.length; i++) {
+            yield { data: pages[i] }
+        }
+    }
+    return {
+        paginate: { iterator },
+        rest: {
+            git: {
+                listMatchingRefs: async () => ({ data: pages.flat() }),
+            },
+        },
+        ...extra,
+    }
+}
+
 test('can get the current version when version tags are available', async () => {
     process.env['GITHUB_REPOSITORY'] = 'mockUser/mockRepo'
     const config = {
-        octokit: {
-            rest: {
-                git: {
-                    listMatchingRefs: async () => ({
-                        data: [
-                            { ref: 'refs/tags/v1.2.3' },
-                            { ref: 'refs/tags/myFeature' },
-                            { ref: 'refs/tags/v1.4.0' },
-                            { ref: 'refs/tags/not-a-version' },
-                            { ref: 'refs/tags/v1.4.1' },
-                            { ref: 'refs/tags/very-good-tag' },
-                        ],
-                    }),
-                },
-            },
-        },
+        octokit: refsOctokit([[
+            { ref: 'refs/tags/v1.2.3' },
+            { ref: 'refs/tags/myFeature' },
+            { ref: 'refs/tags/v1.4.0' },
+            { ref: 'refs/tags/not-a-version' },
+            { ref: 'refs/tags/v1.4.1' },
+            { ref: 'refs/tags/very-good-tag' },
+        ]]),
     }
 
-    expect(getCurrentVersion(config)).resolves.toBe('1.4.1')
+    await expect(getCurrentVersion(config)).resolves.toBe('1.4.1')
 })
 
 test('returns a default version when version tags are unavailable', async () => {
     process.env['GITHUB_REPOSITORY'] = 'mockUser/mockRepo'
     const config = {
-        octokit: {
-            rest: {
-                git: {
-                    listMatchingRefs: async () => ({
-                        data: [
-                            { ref: 'refs/tags/myFeature' },
-                            { ref: 'refs/tags/not-a-version' },
-                            { ref: 'refs/tags/very-good-tag' },
-                        ],
-                    }),
-                },
-            },
-        },
+        octokit: refsOctokit([[
+            { ref: 'refs/tags/myFeature' },
+            { ref: 'refs/tags/not-a-version' },
+            { ref: 'refs/tags/very-good-tag' },
+        ]]),
     }
 
-    expect(getCurrentVersion(config)).resolves.toBe('0.0.0')
+    await expect(getCurrentVersion(config)).resolves.toBe('0.0.0')
+})
+
+test('paginates across multiple pages of tags (issue #26)', async () => {
+    process.env['GITHUB_REPOSITORY'] = 'mockUser/mockRepo'
+    // 3 pages: latest version is on the last page
+    const config = {
+        octokit: refsOctokit([
+            [
+                { ref: 'refs/tags/v1.0.0' },
+                { ref: 'refs/tags/v1.0.1' },
+            ],
+            [
+                { ref: 'refs/tags/v1.1.0' },
+                { ref: 'refs/tags/v1.1.1' },
+            ],
+            [
+                { ref: 'refs/tags/v2.0.0' },
+                { ref: 'refs/tags/v2.0.1' },
+            ],
+        ]),
+    }
+
+    await expect(getCurrentVersion(config)).resolves.toBe('2.0.1')
 })
 
 const baseBranchCases = [
@@ -144,33 +170,33 @@ test.each(baseBranchCases)('returns the latest version on a branch', async (inpu
     process.env['GITHUB_REPOSITORY'] = 'mockUser/mockRepo'
     process.env['GITHUB_REF'] = 'refs/heads/mockBranch'
 
-    async function* asyncGenerator(fn) {
-        yield fn()
+    // paginate.iterator is called for both listMatchingRefs and listCommits;
+    // the underlying method is passed in, so dispatch on its identity.
+    const listMatchingRefs = async () => ({ data: input.matchingRefs })
+    const listCommits = async () => ({ data: input.commitsOnBranch })
+    const getTag = async () => ({
+        data: {
+            object: {
+                sha: input.getTagSha,
+            },
+        },
+    })
+
+    async function* iterator(method) {
+        if (method === listMatchingRefs) {
+            yield { data: input.matchingRefs }
+        } else if (method === listCommits) {
+            yield { data: input.commitsOnBranch }
+        }
     }
+
     const config = {
         baseBranch: true,
         octokit: {
-            paginate: {
-                iterator: asyncGenerator,
-            },
+            paginate: { iterator },
             rest: {
-                git: {
-                    listMatchingRefs: async () => ({
-                        data: input.matchingRefs,
-                    }),
-                    getTag: async () => ({
-                        data: {
-                            object: {
-                                sha: input.getTagSha,
-                            },
-                        },
-                    }),
-                },
-                repos: {
-                    listCommits: async () => ({
-                        data: input.commitsOnBranch,
-                    }),
-                },
+                git: { listMatchingRefs, getTag },
+                repos: { listCommits },
             },
         },
     }
@@ -178,7 +204,7 @@ test.each(baseBranchCases)('returns the latest version on a branch', async (inpu
     return expect(getCurrentVersion(config)).resolves.toBe(expected)
 })
 
-test('can create a new release', async () => {
+test('can create a new release (tag-only)', async () => {
     process.env['GITHUB_REPOSITORY'] = 'mockUser/mockRepo'
     const config = {
         octokit: {
@@ -192,7 +218,73 @@ test('can create a new release', async () => {
     }
 
     config.v = ''
-    expect(createRelease('1.2.3', 'mock release notes', config)).resolves.toBe('1.2.3')
+    await expect(createRelease('1.2.3', 'mock release notes', config))
+        .resolves.toEqual({ tag: '1.2.3', releaseUrl: undefined })
     config.v = 'v'
-    expect(createRelease('1.2.3', 'mock release notes', config)).resolves.toBe('v1.2.3')
+    await expect(createRelease('1.2.3', 'mock release notes', config))
+        .resolves.toEqual({ tag: 'v1.2.3', releaseUrl: undefined })
+})
+
+test('createRelease also creates a GitHub Release when create-release is true', async () => {
+    process.env['GITHUB_REPOSITORY'] = 'mockUser/mockRepo'
+    const config = {
+        v: 'v',
+        createRelease: true,
+        octokit: {
+            rest: {
+                git: {
+                    createTag: async () => ({ data: { sha: 'mockSha' } }),
+                    createRef: async () => ({}),
+                },
+                repos: {
+                    createRelease: async (opts) => ({
+                        data: { html_url: `https://github.com/mockUser/mockRepo/releases/tag/${opts.tag_name}` },
+                    }),
+                },
+            },
+        },
+    }
+
+    await expect(createRelease('1.2.3', 'notes', config)).resolves.toEqual({
+        tag: 'v1.2.3',
+        releaseUrl: 'https://github.com/mockUser/mockRepo/releases/tag/v1.2.3',
+    })
+})
+
+test('createRelease wraps a 403 from createTag with a permissions hint', async () => {
+    process.env['GITHUB_REPOSITORY'] = 'mockUser/mockRepo'
+    const err = new Error('Resource not accessible by integration')
+    err.status = 403
+    const config = {
+        v: '',
+        octokit: {
+            rest: {
+                git: {
+                    createTag: async () => { throw err },
+                    createRef: async () => ({}),
+                },
+            },
+        },
+    }
+
+    await expect(createRelease('1.2.3', 'notes', config)).rejects.toThrow(/contents: write.*permission/)
+})
+
+test('createRelease wraps a 403 from createRef with a permissions hint', async () => {
+    process.env['GITHUB_REPOSITORY'] = 'mockUser/mockRepo'
+    const err = new Error('Resource not accessible by integration')
+    err.status = 403
+    const config = {
+        v: '',
+        octokit: {
+            rest: {
+                git: {
+                    createTag: async () => ({ data: { sha: 'mockSha' } }),
+                    createRef: async () => { throw err },
+                },
+            },
+        },
+    }
+
+    await expect(createRelease('1.2.3', 'notes', config)).rejects.toThrow(/contents: write.*permission/)
 })

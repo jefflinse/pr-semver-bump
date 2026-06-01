@@ -38,8 +38,8 @@ jobs:
     name: Validate Release Label and Notes
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: jefflinse/pr-semver-bump@v1.6.0
+      - uses: actions/checkout@v4
+      - uses: jefflinse/pr-semver-bump@v1
         name: Validate Pull Request Metadata
         with:
           mode: validate
@@ -59,8 +59,8 @@ jobs:
     name: Bump and Tag Version
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: jefflinse/pr-semver-bump@v1.6.0
+      - uses: actions/checkout@v4
+      - uses: jefflinse/pr-semver-bump@v1
         name: Bump and Tag Version
         with:
           mode: bump
@@ -90,6 +90,8 @@ Inputs can be used to customize the behavior of the action in both modes.
 | `release-notes-suffix`  | If defined, constrains release notes to any text appearing before a line matching this pattern in the pull request body. By default, release notes end at the end of the pull request description.        |
 | `with-v`                | If true, newly tagged versions will be prefixed with 'v', e.g. 'v1.2.3'.                                                                                                                                  |
 | `base-branch`           | Whether or not to only consider version tags on the base branch in the pull request.                                                                                                                      |
+| `dry-run`               | If true, computes the next version and emits all outputs but does **not** create a tag or release. Useful for previews and PR comments.                                                                   |
+| `create-release`        | If true, also creates a GitHub Release (in addition to the annotated tag) when bumping in `bump` mode. Surfaces the release URL via `release-url`.                                                        |
 
 ### Using Custom Label Names
 
@@ -98,15 +100,15 @@ By default, the action expects pull requests to be [labeled](https://docs.github
 You can specify your own labels instead. For example, if you always use minor releases for features and patch releases for bugs, you might want:
 
 ```yaml
-uses: jefflinse/pr-semver-bump@v1.6.0
+uses: jefflinse/pr-semver-bump@v1
 name: Validate PR Metadata
 with:
   mode: validate
   repo-token: ${{ secrets.GITHUB_TOKEN }}
   minor-label: new-feature
   patch-label: bug-fix
-  noop-labels:
-    - documentation change
+  noop-labels: |
+    documentation change
 ```
 
 ### Requiring Release Notes
@@ -114,7 +116,7 @@ with:
 Setting `require-release-notes: true` in your workflow configuration will require that some sort of release notes be present. By default, the entire pull request description is used as release notes.
 
 ```yaml
-uses: jefflinse/pr-semver-bump@v1.6.0
+uses: jefflinse/pr-semver-bump@v1
 name: Validate PR Metadata
 with:
   mode: validate
@@ -127,7 +129,7 @@ with:
 By default, the entire pull request description is used as the release notes. If you want to constrain the release notes to just a subset of the description, you can define `release-notes-prefix` and/or `release-notes-suffix` as bounding patterns for the release notes. Lines matching these patterns frame the desired release notes. Any text appearing before the prefix pattern or after the suffix pattern will be ignored.
 
 ```yaml
-uses: jefflinse/pr-semver-bump@v1.6.0
+uses: jefflinse/pr-semver-bump@v1
   name: Validate PR Metadata
   with:
     mode: validate
@@ -167,12 +169,29 @@ and the resulting release notes would contain:
 
 The following outputs are available (in both modes):
 
-| Name            | Description                                                                     |
-|-----------------|---------------------------------------------------------------------------------|
-| `old-version`   | The version before bumping.                                                     |
-| `version`       | The version after bumping. Not provided when skipped.                           |
-| `release-notes` | Release notes found in the pull request description. Not provided when skipped. |
-| `skipped`       | Indicator set to true if the version bump was skipped.                          |
+| Name            | Description                                                                                       |
+|-----------------|---------------------------------------------------------------------------------------------------|
+| `old-version`   | The version before bumping.                                                                       |
+| `version`       | The version after bumping. Not provided when skipped.                                             |
+| `major`         | The major component of the new version (e.g. `1` for `v1.2.3`). Not provided when skipped.       |
+| `minor`         | The minor component of the new version (e.g. `2` for `v1.2.3`). Not provided when skipped.       |
+| `patch`         | The patch component of the new version (e.g. `3` for `v1.2.3`). Not provided when skipped.       |
+| `release-notes` | Release notes found in the pull request description. Not provided when skipped.                   |
+| `release-url`   | URL of the created GitHub Release. Only set when `create-release: true` and a release was created. |
+| `skipped`       | Indicator set to `'true'` if the version bump was skipped.                                        |
+| `bump-summary`  | A JSON object containing all of the above outputs. Useful for downstream `fromJSON()` consumers. |
+
+## Pinning a Version
+
+You can reference this action three different ways, depending on how much you value stability vs. automatic updates:
+
+| Reference                            | Behavior                                                                                                  |
+|--------------------------------------|-----------------------------------------------------------------------------------------------------------|
+| `jefflinse/pr-semver-bump@v1`        | Floating major-version tag. Auto-advances to the latest `v1.x.y` release. Recommended for most users.     |
+| `jefflinse/pr-semver-bump@v1.7.4`    | Pinned to a specific release. Won't change unless you bump it. Use when you need deterministic behavior.  |
+| `jefflinse/pr-semver-bump@<sha>`     | Pinned to an exact commit SHA. Most secure (immutable). Use when you have strict supply-chain requirements. |
+
+The `v1` tag is updated automatically after every release of a `v1.x.y` version.
 
 ## Permissions
 
@@ -200,8 +219,8 @@ jobs:
     name: Validate Release Label and Notes
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: jefflinse/pr-semver-bump@v1.6.0
+      - uses: actions/checkout@v4
+      - uses: jefflinse/pr-semver-bump@v1
         name: Validate Pull Request Metadata
         with:
           mode: validate
@@ -209,13 +228,15 @@ jobs:
           major-label: major release
           minor-label: minor release
           patch-label: patch release
-          noop-labels:
-            - documentation change
+          noop-labels: |
+            documentation change
           require-release-notes: true
           release-notes-prefix: ''
           release-notes-suffix: ''
           with-v: false
           base-branch: false
+          dry-run: false
+          create-release: false
 ```
 
 Create a CI workflow to run whenever a pull request is merged. All optional inputs are explicitly set to their default values in the configuration below.
@@ -233,8 +254,8 @@ jobs:
     name: Bump and Tag Version
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: jefflinse/pr-semver-bump@v1.6.0
+      - uses: actions/checkout@v4
+      - uses: jefflinse/pr-semver-bump@v1
         name: Bump and Tag Version
         with:
           mode: bump
@@ -242,31 +263,20 @@ jobs:
           major-label: major release
           minor-label: minor release
           patch-label: patch release
-          noop-labels:
-            - documentation change
+          noop-labels: |
+            documentation change
           require-release-notes: true
           release-notes-prefix: ''
           release-notes-suffix: ''
           with-v: false
           base-branch: false
+          dry-run: false
+          create-release: false
 ```
 
 ## Contributing
 
 This project is actively maintained. Please open an issue if you find a bug, or better yet, submit a pull request :)
 
-### Building
-
-This is a Node.js project. Make sure you have Node and NPM installed, then:
-
-Install dependencies:
-
-```shell
-npm i
-```
-
-Verify your changes:
-
-```shell
-npm run all
-```
+See [CONTRIBUTING.md](CONTRIBUTING.md) for build, test, and release details.
+For security-sensitive reports, see [SECURITY.md](SECURITY.md).
